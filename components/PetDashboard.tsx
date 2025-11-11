@@ -2,6 +2,7 @@ import { Heart, Activity, MapPin, Battery, Thermometer } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import type { ConnectionStatus } from "../store/telemetry";
 
 interface PetDashboardProps {
   petData: {
@@ -25,14 +26,27 @@ interface PetDashboardProps {
       lastSync: string;
     };
   };
+  connectionStatus: ConnectionStatus;
 }
 
-export function PetDashboard({ petData }: PetDashboardProps) {
+export function PetDashboard({ petData, connectionStatus }: PetDashboardProps) {
   const getBatteryColor = (battery: number) => {
     if (battery > 50) return "text-green-500";
     if (battery > 20) return "text-yellow-500";
     return "text-red-500";
   };
+
+  const connectionLabel =
+    {
+      idle: { text: "Iniciando", color: "bg-gray-400" },
+      connecting: { text: "Conectando", color: "bg-yellow-500" },
+      open: { text: "Ao vivo", color: "bg-red-500" },
+      closed: { text: "Pausado", color: "bg-gray-400" },
+      error: { text: "Instável", color: "bg-orange-500" },
+    }[connectionStatus] ?? {
+      text: "Sem conexão",
+      color: "bg-gray-400",
+    };
 
   const getActivityStatus = (level: number) => {
     if (level > 70) return { text: "Muito Ativo", color: "bg-orange-500" };
@@ -61,10 +75,30 @@ export function PetDashboard({ petData }: PetDashboardProps) {
               {activityStatus.text}
             </Badge>
           </div>
-          <div className={`${getBatteryColor(petData.collar.battery)}`}>
-            <Battery className="w-6 h-6" />
-            <p className="text-xs text-center">{petData.collar.battery}%</p>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-white ${connectionLabel.color}`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    connectionStatus === "open"
+                      ? "bg-white animate-pulse"
+                      : "bg-white/70"
+                  }`}
+                />
+                {connectionLabel.text}
+              </span>
+            </div>
+            <div className={`${getBatteryColor(petData.collar.battery)} text-sm`}>Bateria</div>
+            <div className={`${getBatteryColor(petData.collar.battery)}`}>
+              <Battery className="w-6 h-6" />
+              <p className="text-xs text-center">{petData.collar.battery}%</p>
+            </div>
           </div>
+        </div>
+        <div className="mt-4 rounded-xl bg-gradient-to-r from-yellow-100 via-orange-100 to-red-100 px-3 py-2 text-xs text-gray-600">
+          Último pacote: <span className="font-medium text-gray-900">{petData.collar.lastSync}</span>
         </div>
       </Card>
 
@@ -115,6 +149,9 @@ export function PetDashboard({ petData }: PetDashboardProps) {
             <p className="text-sm text-gray-700 mb-1">Localização Atual</p>
             <p className="text-sm text-gray-900">{petData.location.address}</p>
             <p className="text-xs text-gray-500 mt-2">
+              {petData.location.lat.toFixed(5)}, {petData.location.lng.toFixed(5)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
               Última atualização: {petData.collar.lastSync}
             </p>
           </div>

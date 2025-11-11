@@ -1,6 +1,21 @@
-import { Heart, Activity, TrendingUp, Droplets } from "lucide-react";
+import { useMemo } from "react";
+import { Activity, Droplets, Heart, TrendingUp } from "lucide-react";
+import {
+  Line,
+  LineChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+} from "recharts@2.15.2";
+
 import { Card } from "./ui/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "./ui/chart";
 import { Progress } from "./ui/progress";
+import type { ConnectionStatus, TelemetryRecord } from "../store/telemetry";
 
 interface HealthMonitorProps {
   petName: string;
@@ -12,15 +27,47 @@ interface HealthMonitorProps {
     waterIntake: number;
     sleepHours: number;
   };
+  history: TelemetryRecord[];
+  connectionStatus: ConnectionStatus;
 }
 
-export function HealthMonitor({ petName, health }: HealthMonitorProps) {
+export function HealthMonitor({
+  petName,
+  health,
+  history,
+  connectionStatus,
+}: HealthMonitorProps) {
   const stepsGoal = 8000;
   const waterGoal = 500;
   const sleepGoal = 12;
 
+  const chartData = useMemo(() => {
+    return history
+      .filter((item) => item.heartRate > 0 && item.timestamp)
+      .slice(-20)
+      .map((item) => ({
+        time: new Date(item.timestamp).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        heartRate: item.heartRate,
+        temperature: Number(item.temperature.toFixed(1)),
+      }));
+  }, [history]);
+
+  const liveStatus = {
+    idle: "Aguardando coleira",
+    connecting: "Sincronizando dados",
+    open: "Monitoramento ao vivo",
+    closed: "Conexão encerrada",
+    error: "Instável — verifique a coleira",
+  }[connectionStatus];
+
   return (
     <div className="flex flex-col gap-4 pb-6">
+      <p className="text-xs text-gray-500 px-1">
+        Monitoramento ao vivo de <span className="font-medium text-gray-900">{petName}</span>.
+      </p>
       {/* Heart Rate Card */}
       <Card className="p-5 bg-gradient-to-br from-red-50 to-pink-50 border-red-100">
         <div className="flex items-center justify-between mb-4">
@@ -28,20 +75,70 @@ export function HealthMonitor({ petName, health }: HealthMonitorProps) {
             <Heart className="w-6 h-6 text-red-500" />
             <h3 className="text-gray-900">Frequência Cardíaca</h3>
           </div>
-          <span className="text-xs text-gray-600">Normal</span>
+          <span className="text-xs text-gray-600">{liveStatus}</span>
         </div>
         <p className="text-gray-900 mb-1">{health.heartRate} BPM</p>
         <p className="text-sm text-gray-600">Faixa saudável: 60-140 BPM</p>
-        
-        {/* Simulated heart rate graph */}
-        <div className="mt-4 h-20 flex items-end gap-1">
-          {[65, 70, 68, 72, 75, 73, 78, 76, 72, 70, 68, 65, 70, 75, 72].map((value, index) => (
-            <div
-              key={index}
-              className="flex-1 bg-red-400 rounded-t"
-              style={{ height: `${(value / 80) * 100}%` }}
-            />
-          ))}
+
+        <div className="mt-4">
+          {chartData.length > 0 ? (
+            <ChartContainer
+              config={{
+                heartRate: {
+                  label: "Batimentos",
+                  color: "var(--chart-4)",
+                },
+                temperature: {
+                  label: "Temperatura",
+                  color: "var(--chart-5)",
+                },
+              }}
+              className="h-48"
+            >
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                <XAxis dataKey="time" stroke="var(--color-muted-foreground)" />
+                <YAxis
+                  yAxisId="left"
+                  stroke="var(--color-muted-foreground)"
+                  domain={[40, 200]}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="var(--color-muted-foreground)"
+                  domain={[30, 43]}
+                />
+                <ChartTooltip
+                  cursor={{ stroke: "var(--color-border)" }}
+                  content={<ChartTooltipContent />}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="heartRate"
+                  stroke="var(--color-heartRate)"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="temperature"
+                  stroke="var(--color-temperature)"
+                  strokeWidth={2}
+                  dot={false}
+                  strokeDasharray="6 6"
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ChartContainer>
+          ) : (
+            <div className="flex h-48 items-center justify-center text-xs text-gray-500">
+              Aguardando sinais vitais recentes da coleira.
+            </div>
+          )}
         </div>
       </Card>
 

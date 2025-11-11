@@ -1,91 +1,149 @@
-const express = require('express');
-const cors = require('cors');
+const http = require("http");
+const express = require("express");
+const cors = require("cors");
+
 const app = express();
-const port = 3000;
+const server = http.createServer(app);
+
+const PORT = process.env.PORT || 3000;
+const API_PREFIX = "/api";
 
 app.use(cors());
 app.use(express.json());
 
-// ===== DADOS DO SENSOR =====
-let dadosSensor = {
-  temperatura: 0,
-  umidade: 0,
-  ultimaAtualizacao: null
-};
-
-// ===== DADOS DE LOCALIZAÇÃO (GPS) =====
-let dadosLocalizacao = {
+let latestTelemetry = {
+  heartRate: 0,
+  temperature: 0,
   latitude: 0,
   longitude: 0,
-  altitude: 0,
-  speed: 0,
-  course: 0,
-  satellites: 0,
-  date: "",
-  time: "",
-  source: "gps",
-  ultimaAtualizacao: null
+  timestamp: new Date(0).toISOString(),
 };
 
-// ===== ENDPOINT: SENSOR =====
-app.post('/data', (req, res) => {
-  const { temperatura, umidade } = req.body;
+const sseClients = new Set();
 
-  dadosSensor = {
-    temperatura: temperatura || 0,
-    umidade: umidade || 0,
-    ultimaAtualizacao: new Date().toLocaleString('pt-BR')
+function broadcastTelemetry(record) {
+  const payload = JSON.stringify(record);
+  for (const res of sseClients) {
+    res.write(`data: ${payload}\n\n`);
+  }
+}
+
+function normalizeTelemetry(update = {}) {
+  const timestamp = update.timestamp || new Date().toISOString();
+  const heartRate = Number.isFinite(Number(update.heartRate))
+    ? Number(update.heartRate)
+    : latestTelemetry.heartRate;
+  const temperature = Number.isFinite(Number(update.temperature))
+    ? Number(update.temperature)
+    : latestTelemetry.temperature;
+  const latitude = Number.isFinite(Number(update.latitude ?? update.lat))
+    ? Number(update.latitude ?? update.lat)
+    : latestTelemetry.latitude;
+  const longitude = Number.isFinite(Number(update.longitude ?? update.lon))
+    ? Number(update.longitude ?? update.lon)
+    : latestTelemetry.longitude;
+
+  latestTelemetry = {
+    heartRate,
+    temperature,
+    latitude,
+    longitude,
+    timestamp,
   };
 
-  console.log(`📊 Sensor → Temp: ${temperatura}°C | Umid: ${umidade}%`);
-  res.json({ status: 'success', message: 'Dados do sensor recebidos' });
+  broadcastTelemetry(latestTelemetry);
+
+  return latestTelemetry;
+}
+
+app.get("/", (_req, res) => {
+  res.json({ status: "PawnPrint API", endpoints: [`${API_PREFIX}/vitals`, `${API_PREFIX}/location`, `${API_PREFIX}/stream`] });
 });
 
-// ===== ENDPOINT: LOCALIZAÇÃO =====
-app.post('/location', (req, res) => {
-  const { latitude, longitude, altitude, speed, course, satellites, date, time, source } = req.body;
-
-  dadosLocalizacao = {
-    latitude: latitude || 0,
-    longitude: longitude || 0,
-    altitude: altitude || 0,
-    speed: speed || 0,
-    course: course || 0,
-    satellites: satellites || 0,
-    date: date || "",
-    time: time || "",
-    source: source || "gps",
-    ultimaAtualizacao: new Date().toLocaleString('pt-BR')
-  };
-
-  console.log(`📍 GPS → Lat: ${latitude}, Lon: ${longitude}`);
-  console.log(`   Alt: ${altitude}m | Vel: ${speed}km/h | Satélites: ${satellites}`);
-  console.log(`   Data: ${date} | Hora: ${time}`);
-  res.json({ status: 'success', message: 'Localização GPS recebida' });
+app.get(`${API_PREFIX}/vitals`, (_req, res) => {
+  const { heartRate, temperature, timestamp } = latestTelemetry;
+  res.json({ heartRate, temperature, timestamp });
 });
 
-// PÁGINA HTML
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+app.get(`${API_PREFIX}/location`, (_req, res) => {
+  const { latitude, longitude, timestamp } = latestTelemetry;
+  res.json({ latitude, longitude, timestamp });
 });
 
+app.post(`${API_PREFIX}/telemetry`, (req, res) => {
+  const updated = normalizeTelemetry(req.body || {});
+  res.json({ status: "ok", telemetry: updated });
+});
 
-// ===== ENDPOINTS JSON =====
-app.get('/dados-sensor', (req, res) => res.json(dadosSensor));
-app.get('/dados-localizacao', (req, res) => res.json(dadosLocalizacao));
+app.get(`${API_PREFIX}/stream`, (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+  res.write(`data: ${JSON.stringify(latestTelemetry)}\n\n`);
+  sseClients.add(res);
 
-// ===== STATUS =====
-app.get('/status', (req, res) => {
-  res.json({
-    servidor: 'Online',
-    porta: port,
-    timestamp: new Date().toISOString(),
-    dadosSensor,
-    dadosLocalizacao
+  req.on("close", () => {
+    sseClients.delete(res);
   });
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`📍 Servidor rodando em http://localhost:${port}`);
-  console.log(`📡 Aguardando dados do ESP32...`);
+let serialPort;
+let serialParser;
+
+try {
+  const { SerialPort } = require("serialport");
+  const { ReadlineParser } = require("@serialport/parser-readline");
+
+  const serialPath = process.env.SERIAL_PORT || process.env.SERIAL_PORT_PATH;
+  const baudRate = Number(process.env.SERIAL_BAUD_RATE || 115200);
+
+  if (serialPath) {
+    serialPort = new SerialPort({ path: serialPath, baudRate });
+    serialParser = serialPort.pipe(new ReadlineParser({ delimiter: "\n" }));
+
+    serialParser.on("data", (line) => {
+      try {
+        const data = JSON.parse(line);
+        normalizeTelemetry(data);
+        console.log("🔄 Telemetria recebida da serial:", data);
+      } catch (error) {
+        console.warn("⚠️  Não foi possível interpretar a linha da serial:", line);
+      }
+    });
+
+    serialPort.on("open", () => {
+      console.log(`✅ Porta serial conectada em ${serialPath} (${baudRate} baud)`);
+    });
+
+    serialPort.on("error", (error) => {
+      console.error("Erro na porta serial:", error.message);
+    });
+  } else {
+    console.log("ℹ️  Nenhuma porta serial configurada. Iniciando modo simulado.");
+  }
+} catch (error) {
+  console.log("ℹ️  Pacote serialport não disponível. Iniciando modo simulado.");
+}
+
+if (!serialPort) {
+  setInterval(() => {
+    const simulated = {
+      heartRate: 70 + Math.round(Math.random() * 30),
+      temperature: 37 + Math.random() * 3,
+      latitude:
+        latestTelemetry.latitude || -23.5505 + (Math.random() - 0.5) * 0.001,
+      longitude:
+        latestTelemetry.longitude || -46.6333 + (Math.random() - 0.5) * 0.001,
+      timestamp: new Date().toISOString(),
+    };
+
+    normalizeTelemetry(simulated);
+  }, 3000);
+}
+
+server.listen(PORT, () => {
+  console.log(`🚀 API de telemetria disponível em http://localhost:${PORT}`);
+  console.log(`🌐 Endpoints: ${API_PREFIX}/vitals, ${API_PREFIX}/location, ${API_PREFIX}/stream`);
 });
