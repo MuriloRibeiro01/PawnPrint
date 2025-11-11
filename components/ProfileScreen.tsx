@@ -1,8 +1,23 @@
-import { User, Dog, Phone, Mail, MapPin, Calendar, Edit, Bell, Shield, ChevronRight } from "lucide-react";
-import { Card } from "./ui/card";
-import { Button } from "./ui/button";
-import { Separator } from "./ui/separator";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import {
+  Bell,
+  Calendar,
+  ChevronRight,
+  Dog,
+  Edit,
+  Mail,
+  MapPin,
+  Phone,
+  Shield,
+  User,
+} from "lucide-react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
+import { ImageWithFallback } from "./ImageWithFallback";
 
 interface ProfileScreenProps {
   pet: {
@@ -25,163 +40,277 @@ interface ProfileScreenProps {
 
 export function ProfileScreen({ pet, owner }: ProfileScreenProps) {
   return (
-    <div className="flex flex-col gap-4 pb-6">
-      {/* Pet Profile Card */}
-      <Card className="p-5 bg-white/80 backdrop-blur-lg border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-gray-900">Perfil do Pet</h3>
-          <Button size="sm" variant="ghost" className="text-orange-500">
-            <Edit className="w-4 h-4" />
-          </Button>
-        </div>
+    <View style={styles.container}>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Perfil do Pet</Text>
+          <Pressable style={styles.iconButton}>
+            <Edit color="#f97316" size={18} />
+          </Pressable>
+        </View>
 
-        <div className="flex flex-col items-center mb-5">
-          <div className="w-24 h-24 rounded-full overflow-hidden mb-3 ring-4 ring-orange-100">
+        <View style={styles.profileSection}>
+          <View style={styles.avatarRing}>
             <ImageWithFallback
-              src={pet.imageUrl}
-              alt={pet.name}
-              className="w-full h-full object-cover"
+              uri={pet.imageUrl}
+              style={styles.avatar}
+              fallbackLabel="Pet"
             />
-          </div>
-          <h2 className="text-gray-900 mb-1">{pet.name}</h2>
-          <p className="text-sm text-gray-600">{pet.breed}</p>
-        </div>
+          </View>
+          <Text style={styles.profileName}>{pet.name}</Text>
+          <Text style={styles.profileSubtitle}>{pet.breed}</Text>
+        </View>
 
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Dog className="w-5 h-5 text-gray-500" />
-            <div className="flex-1">
-              <p className="text-xs text-gray-600">Raça</p>
-              <p className="text-sm text-gray-900">{pet.breed}</p>
-            </div>
-          </div>
+        <View style={styles.infoList}>
+          <View style={styles.infoRow}>
+            <Dog color="#6b7280" size={18} />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Raça</Text>
+              <Text style={styles.infoValue}>{pet.breed}</Text>
+            </View>
+          </View>
 
-          <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-gray-500" />
-            <div className="flex-1">
-              <p className="text-xs text-gray-600">Idade / Data de Nascimento</p>
-              <p className="text-sm text-gray-900">{pet.age} anos • {pet.birthDate}</p>
-            </div>
-          </div>
+          <View style={styles.infoRow}>
+            <Calendar color="#6b7280" size={18} />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Idade / Data de Nascimento</Text>
+              <Text style={styles.infoValue}>
+                {pet.age} anos • {pet.birthDate}
+              </Text>
+            </View>
+          </View>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col">
-              <p className="text-xs text-gray-600">Peso</p>
-              <p className="text-sm text-gray-900">{pet.weight} kg</p>
-            </div>
-            <div className="flex flex-col">
-              <p className="text-xs text-gray-600">Sexo</p>
-              <p className="text-sm text-gray-900">{pet.gender}</p>
-            </div>
-          </div>
+          <View style={styles.dualRow}>
+            <View style={styles.dualColumn}>
+              <Text style={styles.infoLabel}>Peso</Text>
+              <Text style={styles.infoValue}>{pet.weight} kg</Text>
+            </View>
+            <View style={styles.dualColumn}>
+              <Text style={styles.infoLabel}>Sexo</Text>
+              <Text style={styles.infoValue}>{pet.gender}</Text>
+            </View>
+          </View>
 
-          <div className="flex items-center gap-3 pt-2">
-            <Shield className="w-5 h-5 text-gray-500" />
-            <div className="flex-1">
-              <p className="text-xs text-gray-600">ID do Microchip</p>
-              <p className="text-sm text-gray-900 font-mono">{pet.microchipId}</p>
-            </div>
-          </div>
-        </div>
-      </Card>
+          <View style={styles.infoRow}>
+            <Shield color="#6b7280" size={18} />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>ID do Microchip</Text>
+              <Text style={[styles.infoValue, styles.mono]}>{pet.microchipId}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
 
-      {/* Owner Profile Card */}
-      <Card className="p-5 bg-white/80 backdrop-blur-lg border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-gray-900">Perfil do Dono</h3>
-          <Button size="sm" variant="ghost" className="text-orange-500">
-            <Edit className="w-4 h-4" />
-          </Button>
-        </div>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Perfil do Dono</Text>
+          <Pressable style={styles.iconButton}>
+            <Edit color="#f97316" size={18} />
+          </Pressable>
+        </View>
 
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <User className="w-5 h-5 text-gray-500" />
-            <div className="flex-1">
-              <p className="text-xs text-gray-600">Nome</p>
-              <p className="text-sm text-gray-900">{owner.name}</p>
-            </div>
-          </div>
+        <View style={styles.infoList}>
+          <View style={styles.infoRow}>
+            <User color="#6b7280" size={18} />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Nome</Text>
+              <Text style={styles.infoValue}>{owner.name}</Text>
+            </View>
+          </View>
 
-          <div className="flex items-center gap-3">
-            <Mail className="w-5 h-5 text-gray-500" />
-            <div className="flex-1">
-              <p className="text-xs text-gray-600">Email</p>
-              <p className="text-sm text-gray-900">{owner.email}</p>
-            </div>
-          </div>
+          <View style={styles.infoRow}>
+            <Mail color="#6b7280" size={18} />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Email</Text>
+              <Text style={styles.infoValue}>{owner.email}</Text>
+            </View>
+          </View>
 
-          <div className="flex items-center gap-3">
-            <Phone className="w-5 h-5 text-gray-500" />
-            <div className="flex-1">
-              <p className="text-xs text-gray-600">Telefone</p>
-              <p className="text-sm text-gray-900">{owner.phone}</p>
-            </div>
-          </div>
+          <View style={styles.infoRow}>
+            <Phone color="#6b7280" size={18} />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Telefone</Text>
+              <Text style={styles.infoValue}>{owner.phone}</Text>
+            </View>
+          </View>
 
-          <div className="flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-gray-500" />
-            <div className="flex-1">
-              <p className="text-xs text-gray-600">Endereço</p>
-              <p className="text-sm text-gray-900">{owner.address}</p>
-            </div>
-          </div>
-        </div>
-      </Card>
+          <View style={styles.infoRow}>
+            <MapPin color="#6b7280" size={18} />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Endereço</Text>
+              <Text style={styles.infoValue}>{owner.address}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
 
-      {/* Settings Section */}
-      <Card className="p-5 bg-white/80 backdrop-blur-lg border-gray-200">
-        <h3 className="text-gray-900 mb-3">Configurações</h3>
-        
-        <div className="space-y-1">
-          <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="flex items-center gap-3">
-              <Bell className="w-5 h-5 text-gray-600" />
-              <span className="text-sm text-gray-900">Notificações</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </button>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Configurações</Text>
+        <View style={styles.settingsList}>
+          <Pressable style={styles.settingsRow}>
+            <View style={styles.settingsLeft}>
+              <Bell color="#6b7280" size={18} />
+              <Text style={styles.infoValue}>Notificações</Text>
+            </View>
+            <ChevronRight color="#9ca3af" size={18} />
+          </Pressable>
 
-          <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="flex items-center gap-3">
-              <Shield className="w-5 h-5 text-gray-600" />
-              <span className="text-sm text-gray-900">Privacidade</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </button>
+          <Pressable style={styles.settingsRow}>
+            <View style={styles.settingsLeft}>
+              <Shield color="#6b7280" size={18} />
+              <Text style={styles.infoValue}>Privacidade</Text>
+            </View>
+            <ChevronRight color="#9ca3af" size={18} />
+          </Pressable>
 
-          <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-gray-600" />
-              <span className="text-sm text-gray-900">Zonas Seguras</span>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
-      </Card>
+          <Pressable style={styles.settingsRow}>
+            <View style={styles.settingsLeft}>
+              <MapPin color="#6b7280" size={18} />
+              <Text style={styles.infoValue}>Zonas Seguras</Text>
+            </View>
+            <ChevronRight color="#9ca3af" size={18} />
+          </Pressable>
+        </View>
+      </View>
 
-      {/* Collar Info */}
-      <Card className="p-5 bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-100">
-        <h3 className="text-gray-900 mb-3">Informações da Coleira</h3>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Modelo</span>
-            <span className="text-sm text-gray-900">SmartPet Pro X</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Número de Série</span>
-            <span className="text-sm text-gray-900 font-mono">SP-2024-7821</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Firmware</span>
-            <span className="text-sm text-gray-900">v2.4.1</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Último Sync</span>
-            <span className="text-sm text-gray-900">Agora mesmo</span>
-          </div>
-        </div>
-      </Card>
-    </div>
+      <View style={[styles.card, styles.sunsetCard]}>
+        <Text style={styles.cardTitle}>Informações da Coleira</Text>
+        <View style={styles.dualColumnList}>
+          <View style={styles.dualRowItem}>
+            <Text style={styles.infoLabel}>Modelo</Text>
+            <Text style={styles.infoValue}>SmartPet Pro X</Text>
+          </View>
+          <View style={styles.dualRowItem}>
+            <Text style={styles.infoLabel}>Número de Série</Text>
+            <Text style={[styles.infoValue, styles.mono]}>SP-2024-7821</Text>
+          </View>
+          <View style={styles.dualRowItem}>
+            <Text style={styles.infoLabel}>Firmware</Text>
+            <Text style={styles.infoValue}>v2.4.1</Text>
+          </View>
+          <View style={styles.dualRowItem}>
+            <Text style={styles.infoLabel}>Último Sync</Text>
+            <Text style={styles.infoValue}>Agora mesmo</Text>
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    gap: 16,
+    paddingBottom: 24,
+  },
+  card: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 24,
+    padding: 20,
+    gap: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+  },
+  sunsetCard: {
+    backgroundColor: "#ffedd5",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardTitle: {
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  iconButton: {
+    alignItems: "center",
+    backgroundColor: "rgba(249,115,22,0.12)",
+    borderRadius: 999,
+    padding: 8,
+  },
+  profileSection: {
+    alignItems: "center",
+    gap: 4,
+  },
+  avatarRing: {
+    alignItems: "center",
+    backgroundColor: "rgba(253,186,116,0.3)",
+    borderRadius: 999,
+    height: 108,
+    justifyContent: "center",
+    padding: 8,
+    width: 108,
+  },
+  avatar: {
+    borderRadius: 999,
+    height: 92,
+    width: 92,
+  },
+  profileName: {
+    color: "#111827",
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  profileSubtitle: {
+    color: "#6b7280",
+    fontSize: 14,
+  },
+  infoList: {
+    gap: 12,
+  },
+  infoRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+  },
+  infoContent: {
+    flex: 1,
+    gap: 4,
+  },
+  infoLabel: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  infoValue: {
+    color: "#111827",
+    fontSize: 14,
+  },
+  mono: {
+    fontFamily: "monospace",
+  },
+  dualRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  dualColumn: {
+    flex: 1,
+    gap: 4,
+  },
+  settingsList: {
+    gap: 8,
+  },
+  settingsRow: {
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    borderRadius: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  settingsLeft: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+  },
+  dualColumnList: {
+    gap: 12,
+  },
+  dualRowItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+});

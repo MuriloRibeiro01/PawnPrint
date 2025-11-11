@@ -1,8 +1,18 @@
-import { MapPin, Navigation, Home, RadioTower } from "lucide-react";
+import {
+  Home,
+  MapPin,
+  Navigation,
+  RadioTower,
+} from "lucide-react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import type { ConnectionStatus, TelemetryRecord } from "../store/telemetry";
-import { Card } from "./ui/card";
-import { Button } from "./ui/button";
 
 interface LocationMapProps {
   location: {
@@ -15,19 +25,22 @@ interface LocationMapProps {
   connectionStatus: ConnectionStatus;
 }
 
+const STATUS_COPY: Record<ConnectionStatus, { text: string; color: string }> = {
+  idle: { text: "Aguardando", color: "#9ca3af" },
+  connecting: { text: "Conectando", color: "#f59e0b" },
+  open: { text: "Ao vivo", color: "#ef4444" },
+  closed: { text: "Encerrado", color: "#9ca3af" },
+  error: { text: "Instável", color: "#f97316" },
+};
+
 export function LocationMap({
   location,
   petName,
   history,
   connectionStatus,
 }: LocationMapProps) {
-  const connectionLabel = {
-    idle: { text: "Aguardando", color: "bg-gray-400" },
-    connecting: { text: "Conectando", color: "bg-yellow-500" },
-    open: { text: "Ao vivo", color: "bg-red-500" },
-    closed: { text: "Encerrado", color: "bg-gray-400" },
-    error: { text: "Instável", color: "bg-orange-500" },
-  }[connectionStatus];
+  const statusLabel =
+    STATUS_COPY[connectionStatus] ?? STATUS_COPY.idle;
 
   const recentLocations = history
     .filter((item) => item.latitude !== 0 || item.longitude !== 0)
@@ -44,127 +57,278 @@ export function LocationMap({
     }));
 
   return (
-    <div className="flex flex-col gap-4 pb-6">
-      {/* Map Container */}
-      <Card
-        className="relative overflow-hidden border-gray-200"
-        style={{ height: "400px" }}
-      >
-        {/* Simulated Map Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-yellow-100 via-orange-50 to-red-50">
-          {/* Grid pattern to simulate map */}
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)",
-              backgroundSize: "50px 50px",
-            }}
+    <View style={styles.container}>
+      <View style={styles.mapCard}>
+        <View style={styles.mapSurface}>
+          <View style={styles.gridLayer}>
+            <View style={[styles.horizontalLine, { top: "25%" }]} />
+            <View style={[styles.horizontalLine, { top: "50%", height: 3 }]} />
+            <View style={[styles.horizontalLine, { top: "75%" }]} />
+            <View style={[styles.verticalLine, { left: "33%" }]} />
+            <View style={[styles.verticalLine, { left: "66%" }]} />
+          </View>
+
+          <View style={styles.petMarkerWrapper}>
+            <View style={styles.pulse} />
+            <View style={styles.petMarker}>
+              <MapPin color="#ffffff" size={24} />
+            </View>
+          </View>
+
+          <View style={styles.homeMarker}>
+            <Home color="#ffffff" size={18} />
+          </View>
+        </View>
+
+        <View style={styles.mapHeader}>
+          <RadioTower color="#f97316" size={18} />
+          <Text style={styles.mapHeaderText}>{statusLabel.text}</Text>
+          <View
+            style={[styles.statusDot, { backgroundColor: statusLabel.color }]}
           />
+        </View>
 
-          {/* Streets simulation */}
-          <div className="absolute top-1/4 left-0 right-0 h-1 bg-gray-300/50" />
-          <div className="absolute top-1/2 left-0 right-0 h-2 bg-gray-400/60" />
-          <div className="absolute top-3/4 left-0 right-0 h-1 bg-gray-300/50" />
-          <div className="absolute top-0 bottom-0 left-1/3 w-1 bg-gray-300/50" />
-          <div className="absolute top-0 bottom-0 left-2/3 w-1 bg-gray-300/50" />
+        <View style={styles.zoomControls}>
+          <Pressable style={styles.zoomButton}>
+            <Text style={styles.zoomText}>+</Text>
+          </Pressable>
+          <Pressable style={styles.zoomButton}>
+            <Text style={styles.zoomText}>−</Text>
+          </Pressable>
+        </View>
+      </View>
 
-          {/* Pet location marker */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full">
-            <div className="relative">
-              <div className="absolute -inset-4 bg-red-500/20 rounded-full animate-ping" />
-              <div className="relative bg-red-500 rounded-full p-3 shadow-lg">
-                <MapPin className="w-6 h-6 text-white" fill="white" />
-              </div>
-            </div>
-          </div>
-
-          {/* Home marker */}
-          <div className="absolute top-3/4 left-1/4 transform -translate-x-1/2 -translate-y-full">
-            <div className="bg-gray-700 rounded-full p-2 shadow-md">
-              <Home className="w-4 h-4 text-white" />
-            </div>
-          </div>
-        </div>
-
-        {/* Zoom Controls */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            className="w-10 h-10 rounded-full bg-white shadow-lg"
-          >
-            +
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="w-10 h-10 rounded-full bg-white shadow-lg"
-          >
-            −
-          </Button>
-        </div>
-
-        {/* Live indicator */}
-        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg flex items-center gap-2">
-          <RadioTower className="w-4 h-4 text-orange-500" />
-          <span className="text-xs text-gray-700">{connectionLabel.text}</span>
-          <span
-            className={`w-2 h-2 rounded-full ${
-              connectionStatus === "open"
-                ? "bg-red-500 animate-pulse"
-                : connectionLabel.color
-            }`}
-          />
-        </div>
-      </Card>
-
-      {/* Location Details */}
-      <Card className="p-4 bg-white/80 backdrop-blur-lg border-gray-200">
-        <div className="flex items-start gap-3 mb-4">
-          <MapPin className="w-5 h-5 text-orange-500 mt-1" />
-          <div className="flex-1">
-            <p className="text-sm text-gray-600 mb-1">Localização de {petName}</p>
-            <p className="text-gray-900">{location.address}</p>
-            <p className="text-xs text-gray-500 mt-2">
+      <View style={styles.infoCard}>
+        <View style={styles.locationRow}>
+          <MapPin color="#f97316" size={20} />
+          <View style={styles.locationDetails}>
+            <Text style={styles.locationTitle}>Localização de {petName}</Text>
+            <Text style={styles.locationAddress}>{location.address}</Text>
+            <Text style={styles.locationCoords}>
               {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-            </p>
-          </div>
-        </div>
+            </Text>
+          </View>
+        </View>
+        <Pressable style={styles.navigateButton}>
+          <Navigation color="#ffffff" size={16} />
+          <Text style={styles.navigateText}>Ir até {petName}</Text>
+        </Pressable>
+      </View>
 
-        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-          <Navigation className="w-4 h-4 mr-2" />
-          Ir até {petName}
-        </Button>
-      </Card>
-
-      {/* History Card */}
-      <Card className="p-4 bg-white/80 backdrop-blur-lg border-gray-200">
-        <p className="text-sm text-gray-700 mb-3">Últimas posições transmitidas</p>
-        <div className="space-y-3">
-          {recentLocations.length === 0 ? (
-            <p className="text-xs text-gray-500">
-              Aguardando pacotes de localização da coleira inteligente.
-            </p>
-          ) : (
-            recentLocations.map((item, index) => (
-              <div key={item.id} className="flex items-center gap-3">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    index === 0 ? "bg-red-500" : "bg-orange-400"
-                  }`}
+      <View style={styles.historyCard}>
+        <Text style={styles.historyTitle}>Últimas posições transmitidas</Text>
+        {recentLocations.length === 0 ? (
+          <Text style={styles.emptyHistory}>
+            Aguardando pacotes de localização da coleira inteligente.
+          </Text>
+        ) : (
+          <ScrollView style={styles.historyList}>
+            {recentLocations.map((item, index) => (
+              <View key={item.id} style={styles.historyRow}>
+                <View
+                  style={[
+                    styles.historyDot,
+                    { backgroundColor: index === 0 ? "#ef4444" : "#fb923c" },
+                  ]}
                 />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900">
+                <View style={styles.historyContent}>
+                  <Text style={styles.historyCoords}>
                     {item.lat.toFixed(5)}, {item.lng.toFixed(5)}
-                  </p>
-                  <p className="text-xs text-gray-500">{item.timestamp}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </Card>
-    </div>
+                  </Text>
+                  <Text style={styles.historyTimestamp}>{item.timestamp}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    gap: 16,
+    paddingBottom: 24,
+  },
+  mapCard: {
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 24,
+    height: 340,
+    overflow: "hidden",
+    position: "relative",
+  },
+  mapSurface: {
+    flex: 1,
+    backgroundColor: "#fef3c7",
+  },
+  gridLayer: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.25,
+  },
+  horizontalLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: "#d4d4d8",
+  },
+  verticalLine: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: "#d4d4d8",
+  },
+  petMarkerWrapper: {
+    position: "absolute",
+    top: "45%",
+    left: "50%",
+    transform: [{ translateX: -20 }, { translateY: -40 }],
+    alignItems: "center",
+  },
+  pulse: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 999,
+    backgroundColor: "rgba(239,68,68,0.25)",
+  },
+  petMarker: {
+    backgroundColor: "#ef4444",
+    borderRadius: 999,
+    padding: 12,
+  },
+  homeMarker: {
+    position: "absolute",
+    bottom: 60,
+    left: "20%",
+    padding: 8,
+    borderRadius: 999,
+    backgroundColor: "#111827",
+  },
+  mapHeader: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  mapHeaderText: {
+    color: "#4b5563",
+    fontSize: 12,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+  },
+  zoomControls: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    gap: 12,
+  },
+  zoomButton: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: 999,
+    elevation: 2,
+    height: 44,
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    width: 44,
+  },
+  zoomText: {
+    color: "#111827",
+    fontSize: 20,
+  },
+  infoCard: {
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 24,
+    padding: 20,
+    gap: 16,
+  },
+  locationRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  locationDetails: {
+    flex: 1,
+    gap: 4,
+  },
+  locationTitle: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  locationAddress: {
+    color: "#374151",
+    fontSize: 14,
+  },
+  locationCoords: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  navigateButton: {
+    backgroundColor: "#f97316",
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+  },
+  navigateText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  historyCard: {
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 24,
+    padding: 20,
+    gap: 12,
+  },
+  historyTitle: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  emptyHistory: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  historyList: {
+    maxHeight: 160,
+  },
+  historyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  historyDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+  },
+  historyContent: {
+    gap: 2,
+  },
+  historyCoords: {
+    color: "#111827",
+    fontSize: 14,
+  },
+  historyTimestamp: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+});

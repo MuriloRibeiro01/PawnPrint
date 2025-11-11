@@ -1,7 +1,14 @@
 import { useEffect } from "react";
+import { Platform } from "react-native";
 
-import { fetchLocation, fetchVitals, connectToTelemetryStream } from "../services/api";
+import {
+  fetchLocation,
+  fetchVitals,
+  connectToTelemetryStream,
+  startTelemetryPolling,
+} from "../services/api";
 import { useTelemetryStore } from "../store/telemetry";
+import type { TelemetryRecord } from "../store/telemetry";
 
 export function useTelemetryStream() {
   const updateTelemetry = useTelemetryStore((state) => state.updateTelemetry);
@@ -11,6 +18,7 @@ export function useTelemetryStream() {
 
   useEffect(() => {
     let isMounted = true;
+    let stopPolling: (() => void) | null = null;
 
     async function loadInitialData() {
       setConnectionStatus("connecting");
@@ -23,52 +31,75 @@ export function useTelemetryStream() {
       if (!isMounted) return;
 
       if (vitals) {
-        updateTelemetry({
+        const vitalPatch: Partial<TelemetryRecord> = {
           heartRate: vitals.heartRate,
           temperature: vitals.temperature,
-          timestamp: vitals.timestamp,
-        });
+        };
+        if (typeof vitals.timestamp === "string") {
+          vitalPatch.timestamp = vitals.timestamp;
+        }
+        updateTelemetry(vitalPatch);
       }
 
       if (location) {
-        updateTelemetry({
-          latitude: location.latitude,
-          longitude: location.longitude,
-          timestamp: location.timestamp,
-        });
+        const locationPatch: Partial<TelemetryRecord> = {};
+        if (typeof location.latitude === "number") {
+          locationPatch.latitude = location.latitude;
+        }
+        if (typeof location.longitude === "number") {
+          locationPatch.longitude = location.longitude;
+        }
+        if (typeof location.timestamp === "string") {
+          locationPatch.timestamp = location.timestamp;
+        }
+        updateTelemetry(locationPatch);
       }
 
       if (!vitals && !location) {
         setConnectionStatus("error");
       }
 
-      const eventSource = connectToTelemetryStream((record) => {
+      if (Platform.OS === "web") {
+        const eventSource = connectToTelemetryStream((record) => {
+          updateTelemetry(record);
+          setConnectionStatus("open");
+        });
+
+        if (eventSource) {
+          eventSource.onerror = (event) => {
+            console.error("Telemetry stream error", event);
+            setConnectionStatus("error");
+          };
+
+          eventSource.onopen = () => {
+            setConnectionStatus("open");
+          };
+
+          return eventSource;
+        }
+      }
+
+      stopPolling = startTelemetryPolling((record) => {
         updateTelemetry(record);
         setConnectionStatus("open");
       });
 
-      eventSource.onerror = (event) => {
-        console.error("Telemetry stream error", event);
-        setConnectionStatus("error");
-      };
-
-      eventSource.onopen = () => {
-        setConnectionStatus("open");
-      };
-
-      return eventSource;
+      return null;
     }
 
-    let source: EventSource | null = null;
+    let source: ReturnType<typeof connectToTelemetryStream> = null;
 
     loadInitialData().then((createdSource) => {
-      source = createdSource ?? null;
+      source = createdSource;
     });
 
     return () => {
       isMounted = false;
       if (source) {
         source.close();
+      }
+      if (stopPolling) {
+        stopPolling();
       }
       setConnectionStatus("closed");
     };

@@ -1,6 +1,6 @@
 # 🐾 PawnPrint — Smart Pet Collar App
 
-Aplicativo web/mobile em **React** para monitoramento de pets usando uma coleira inteligente equipada com sensores de **saúde** (batimentos cardíacos e temperatura) e **GPS**.  
+Aplicativo mobile em **React Native (Expo)** para monitoramento de pets usando uma coleira inteligente equipada com sensores de **saúde** (batimentos cardíacos e temperatura) e **GPS**.
 O objetivo é fornecer uma experiência clara, intuitiva e rápida para tutores de animais, permitindo monitoramento em tempo real, relatórios, histórico e gerenciamento completo do pet.
 
 Este README consolida toda a análise, o design do Figma e a arquitetura necessária para iniciar imediatamente o desenvolvimento do MVP.
@@ -16,7 +16,7 @@ Este README consolida toda a análise, o design do Figma e a arquitetura necess�
 - **Perfil do pet e do tutor** com edição.
 - **Design em tons quentes** (amarelo → laranja → vermelho) conforme o protótipo Figma.
 - **Layout mobile-first**, fluído e moderno.
-- **Arquitetura React + Vite** de alta performance.
+- **Arquitetura Expo + React Native** otimizada para iOS, Android e Web.
 
 ---
 
@@ -69,51 +69,34 @@ https://www.figma.com/make/wtfJEiOlvbbzujuF7UGWdw/PetCare
 
 ---
 
-## 🏛 Arquitetura Recomendada (React)
+## 🏛 Arquitetura do App (Expo)
 
 ### **Stack Principal**
 | Função | Tecnologia |
 |-------|------------|
-| Build Tool | **Vite** |
-| Framework | **React 18** |
+| Build Tool | **Expo** |
+| Framework | **React Native 0.74** |
 | Linguagem | **TypeScript** |
-| UI | **TailwindCSS** + Radix UI |
-| Mapas | React Leaflet / Mapbox |
-| Gráficos | Recharts / Nivo |
-| Estado | Zustand / Redux Toolkit |
+| UI | Componentes nativos + `lucide-react-native` + `expo-linear-gradient` |
+| Gráficos | `react-native-svg` (custom) |
+| Estado | Zustand |
 | Backend | Supabase / Firebase |
-| Deploy | Vercel / Netlify |
+| Deploy | Expo (EAS) |
 
 ---
 
 ## 📁 Estrutura de Pastas
 
-pawnprint/
-├─ src/
-│ ├─ assets/
-│ ├─ components/
-│ ├─ hooks/
-│ ├─ layouts/
-│ ├─ pages/
-│ │ ├─ Dashboard/
-│ │ ├─ Map/
-│ │ ├─ Health/
-│ │ ├─ Profile/
-│ │ └─ Auth/
-│ ├─ store/
-│ ├─ services/
-│ │ ├─ auth.service.ts
-│ │ ├─ pets.service.ts
-│ │ ├─ vitals.service.ts
-│ │ ├─ location.service.ts
-│ │ └─ geofence.service.ts
-│ ├─ types/
-│ ├─ utils/
-│ ├─ App.tsx
-│ └─ main.tsx
-├─ public/
-├─ index.html
-└─ package.json
+pawn-print/
+├─ App.tsx
+├─ components/
+├─ hooks/
+├─ services/
+├─ store/
+├─ app.json
+├─ package.json
+├─ tsconfig.json
+└─ babel.config.js
 
 ## 🧾 Modelos de Dados (TypeScript)
 
@@ -162,35 +145,27 @@ export interface Geofence {
 ## 🛠 Tecnologias e Bibliotecas
 
 ### UI
-- TailwindCSS  
-- Radix UI  
-- Lucide Icons  
-- Framer Motion  
+- React Native Primitives
+- `lucide-react-native`
+- `expo-linear-gradient`
 
 ### Estado
-- Zustand  
-ou  
-- Redux Toolkit  
+- Zustand
 
 ### Mapa
-- React Leaflet  
-ou  
-- Mapbox GL JS  
+- Integração com APIs externas (Mapbox / Google) — a implementar
 
 ### Realtime
-- Supabase Realtime  
-ou  
-- Firebase Listener  
+- Supabase Realtime
+ou
+- Firebase Listener
 
 ### Charts
-- Recharts  
-ou  
-- Nivo  
+- `react-native-svg`
 
 ### Utilidades
-- Axios  
-- Zod  
-- date-fns  
+- Zod
+- date-fns
 
 ---
 
@@ -208,53 +183,27 @@ npm install
 ```
 
 ### 3. Configure variáveis de ambiente (.env)
-Supabase:
 
-```env
-Copiar código
-VITE_SUPABASE_URL=
-VITE_SUPABASE_KEY=
-Firebase:
-```
-
-```env
-Copiar código
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-```
+Utilize variáveis iniciadas com `EXPO_PUBLIC_` para expor URLs ou chaves necessárias.
 
 ### 4. Execute o projeto
 ```bash
-Copiar código
-npm run dev
+npm start
 ```
 
 ### 5. Build para produção
 ```bash
-Copiar código
-npm run build
-🧪 Simulando dados do hardware (MVP)
-ts
-Copiar código
-setInterval(() => {
-  const heartRate = Math.floor(70 + Math.random() * 90);
-  const temperature = 36 + Math.random() * 3;
-
-  saveVitalData({ heartRate, temperature });
-}, 5000);
+npx expo export
 ```
-
 ### 🤝 Contribuindo
 Crie uma branch:
 
 ```bash
-Copiar código
 git checkout -b feature/nova-feature
 ```
 Commit:
 
 ```bash
-Copiar código
 git commit -m "Adiciona nova feature"
 ```
 Submeta um Pull Request.

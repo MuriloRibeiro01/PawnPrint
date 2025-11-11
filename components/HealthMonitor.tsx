@@ -1,20 +1,18 @@
 import { useMemo } from "react";
-import { Activity, Droplets, Heart, TrendingUp } from "lucide-react";
 import {
-  Line,
-  LineChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-} from "recharts@2.15.2";
+  Activity,
+  Droplets,
+  Heart,
+  TrendingUp,
+} from "lucide-react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import Svg, { Line as SvgLine, Polyline } from "react-native-svg";
 
-import { Card } from "./ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "./ui/chart";
-import { Progress } from "./ui/progress";
 import type { ConnectionStatus, TelemetryRecord } from "../store/telemetry";
 
 interface HealthMonitorProps {
@@ -29,6 +27,18 @@ interface HealthMonitorProps {
   };
   history: TelemetryRecord[];
   connectionStatus: ConnectionStatus;
+}
+
+const { width } = Dimensions.get("window");
+const CHART_WIDTH = Math.max(260, width - 80);
+const CHART_HEIGHT = 160;
+
+function ProgressBar({ value }: { value: number }) {
+  return (
+    <View style={styles.progressTrack}>
+      <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(100, value))}%` }]} />
+    </View>
+  );
 }
 
 export function HealthMonitor({
@@ -63,192 +73,346 @@ export function HealthMonitor({
     error: "Instável — verifique a coleira",
   }[connectionStatus];
 
+  const heartValues = chartData.map((item) => item.heartRate);
+  const tempValues = chartData.map((item) => item.temperature);
+
+  const heartRange = {
+    min: heartValues.length ? Math.min(50, ...heartValues) : 50,
+    max: heartValues.length ? Math.max(160, ...heartValues) : 160,
+  };
+
+  const tempRange = {
+    min: tempValues.length ? Math.min(35, ...tempValues) : 35,
+    max: tempValues.length ? Math.max(42, ...tempValues) : 42,
+  };
+
+  const heartLine = chartData
+    .map((item, index) => {
+      if (chartData.length === 1) {
+        return `${CHART_WIDTH / 2},${CHART_HEIGHT / 2}`;
+      }
+      const ratio = index / (chartData.length - 1);
+      const x = ratio * CHART_WIDTH;
+      const clamped = Math.min(heartRange.max, Math.max(heartRange.min, item.heartRate));
+      const normalized = (clamped - heartRange.min) / (heartRange.max - heartRange.min || 1);
+      const y = CHART_HEIGHT - normalized * CHART_HEIGHT;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const temperatureLine = chartData
+    .map((item, index) => {
+      if (chartData.length === 1) {
+        return `${CHART_WIDTH / 2},${CHART_HEIGHT / 2}`;
+      }
+      const ratio = index / (chartData.length - 1);
+      const x = ratio * CHART_WIDTH;
+      const clamped = Math.min(tempRange.max, Math.max(tempRange.min, item.temperature));
+      const normalized = (clamped - tempRange.min) / (tempRange.max - tempRange.min || 1);
+      const y = CHART_HEIGHT - normalized * CHART_HEIGHT;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
   return (
-    <div className="flex flex-col gap-4 pb-6">
-      <p className="text-xs text-gray-500 px-1">
-        Monitoramento ao vivo de <span className="font-medium text-gray-900">{petName}</span>.
-      </p>
-      {/* Heart Rate Card */}
-      <Card className="p-5 bg-gradient-to-br from-red-50 to-pink-50 border-red-100">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Heart className="w-6 h-6 text-red-500" />
-            <h3 className="text-gray-900">Frequência Cardíaca</h3>
-          </div>
-          <span className="text-xs text-gray-600">{liveStatus}</span>
-        </div>
-        <p className="text-gray-900 mb-1">{health.heartRate} BPM</p>
-        <p className="text-sm text-gray-600">Faixa saudável: 60-140 BPM</p>
+    <View style={styles.container}>
+      <Text style={styles.description}>
+        Monitoramento ao vivo de <Text style={styles.descriptionHighlight}>{petName}</Text>.
+      </Text>
 
-        <div className="mt-4">
+      <View style={[styles.card, styles.redGradient]}>
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.cardHeaderLeft}>
+            <Heart color="#ef4444" size={22} />
+            <Text style={styles.cardTitle}>Frequência Cardíaca</Text>
+          </View>
+          <Text style={styles.cardSubtitle}>{liveStatus}</Text>
+        </View>
+        <Text style={styles.primaryValue}>{health.heartRate} BPM</Text>
+        <Text style={styles.secondaryText}>Faixa saudável: 60-140 BPM</Text>
+
+        <View style={styles.chartWrapper}>
           {chartData.length > 0 ? (
-            <ChartContainer
-              config={{
-                heartRate: {
-                  label: "Batimentos",
-                  color: "var(--chart-4)",
-                },
-                temperature: {
-                  label: "Temperatura",
-                  color: "var(--chart-5)",
-                },
-              }}
-              className="h-48"
-            >
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                <XAxis dataKey="time" stroke="var(--color-muted-foreground)" />
-                <YAxis
-                  yAxisId="left"
-                  stroke="var(--color-muted-foreground)"
-                  domain={[40, 200]}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="var(--color-muted-foreground)"
-                  domain={[30, 43]}
-                />
-                <ChartTooltip
-                  cursor={{ stroke: "var(--color-border)" }}
-                  content={<ChartTooltipContent />}
-                />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="heartRate"
-                  stroke="var(--color-heartRate)"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="temperature"
-                  stroke="var(--color-temperature)"
-                  strokeWidth={2}
-                  dot={false}
-                  strokeDasharray="6 6"
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ChartContainer>
+            <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
+              <SvgLine
+                x1={0}
+                y1={CHART_HEIGHT}
+                x2={CHART_WIDTH}
+                y2={CHART_HEIGHT}
+                stroke="#e5e7eb"
+                strokeDasharray="4 8"
+              />
+              <SvgLine x1={0} y1={0} x2={0} y2={CHART_HEIGHT} stroke="#e5e7eb" />
+              <Polyline
+                points={heartLine}
+                stroke="#ef4444"
+                strokeWidth={3}
+                fill="none"
+              />
+              <Polyline
+                points={temperatureLine}
+                stroke="#f59e0b"
+                strokeWidth={3}
+                fill="none"
+                strokeDasharray="6 6"
+              />
+            </Svg>
           ) : (
-            <div className="flex h-48 items-center justify-center text-xs text-gray-500">
-              Aguardando sinais vitais recentes da coleira.
-            </div>
+            <View style={styles.emptyChart}>
+              <Text style={styles.emptyChartText}>
+                Aguardando sinais vitais recentes da coleira.
+              </Text>
+            </View>
           )}
-        </div>
-      </Card>
+        </View>
+      </View>
 
-      {/* Temperature Card */}
-      <Card className="p-5 bg-gradient-to-br from-orange-50 to-amber-50 border-orange-100">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-gray-900">Temperatura Corporal</h3>
-          <span className="text-xs text-green-600">● Saudável</span>
-        </div>
-        <div className="flex items-baseline gap-2">
-          <p className="text-gray-900">{health.temperature}°C</p>
-          <span className="text-sm text-gray-600">(Normal: 38-39°C)</span>
-        </div>
-      </Card>
+      <View style={[styles.card, styles.orangeGradient]}>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.cardTitle}>Temperatura Corporal</Text>
+          <Text style={styles.statusTag}>● Saudável</Text>
+        </View>
+        <View style={styles.metricRow}>
+          <Text style={styles.primaryValue}>{health.temperature}°C</Text>
+          <Text style={styles.secondaryText}>(Normal: 38-39°C)</Text>
+        </View>
+      </View>
 
-      {/* Activity & Steps */}
-      <Card className="p-5 bg-white/80 backdrop-blur-lg border-gray-200">
-        <div className="flex items-center gap-2 mb-4">
-          <Activity className="w-6 h-6 text-orange-500" />
-          <h3 className="text-gray-900">Atividade Física</h3>
-        </div>
-        
-        <div className="space-y-4">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-700">Passos Hoje</span>
-              <span className="text-sm text-gray-900">
-                {health.stepsToday.toLocaleString()} / {stepsGoal.toLocaleString()}
-              </span>
-            </div>
-            <Progress value={(health.stepsToday / stepsGoal) * 100} className="h-2" />
-          </div>
+      <View style={styles.card}>
+        <View style={styles.cardHeaderLeft}>
+          <Activity color="#f97316" size={22} />
+          <Text style={styles.cardTitle}>Atividade Física</Text>
+        </View>
 
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-700">Nível de Atividade</span>
-              <span className="text-sm text-gray-900">{health.activityLevel}%</span>
-            </div>
-            <Progress value={health.activityLevel} className="h-2" />
-          </div>
-        </div>
+        <View style={styles.metricBlock}>
+          <View style={styles.metricHeader}>
+            <Text style={styles.secondaryText}>Passos Hoje</Text>
+            <Text style={styles.metricValue}>
+              {health.stepsToday.toLocaleString("pt-BR")} / {stepsGoal.toLocaleString("pt-BR")}
+            </Text>
+          </View>
+          <ProgressBar value={(health.stepsToday / stepsGoal) * 100} />
+        </View>
 
-        <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-200">
-          <div className="text-center">
-            <p className="text-xs text-gray-600 mb-1">Caminhada</p>
-            <p className="text-sm text-gray-900">2.5 km</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-600 mb-1">Corrida</p>
-            <p className="text-sm text-gray-900">800 m</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-600 mb-1">Calorias</p>
-            <p className="text-sm text-gray-900">420 kcal</p>
-          </div>
-        </div>
-      </Card>
+        <View style={styles.metricBlock}>
+          <View style={styles.metricHeader}>
+            <Text style={styles.secondaryText}>Nível de Atividade</Text>
+            <Text style={styles.metricValue}>{health.activityLevel}%</Text>
+          </View>
+          <ProgressBar value={health.activityLevel} />
+        </View>
 
-      {/* Hydration */}
-      <Card className="p-5 bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-100">
-        <div className="flex items-center gap-2 mb-4">
-          <Droplets className="w-6 h-6 text-yellow-600" />
-          <h3 className="text-gray-900">Hidratação</h3>
-        </div>
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-700">Água consumida hoje</span>
-          <span className="text-sm text-gray-900">{health.waterIntake}ml / {waterGoal}ml</span>
-        </div>
-        <Progress value={(health.waterIntake / waterGoal) * 100} className="h-2" />
-      </Card>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryColumn}>
+            <Text style={styles.secondaryText}>Caminhada</Text>
+            <Text style={styles.summaryValue}>2.5 km</Text>
+          </View>
+          <View style={styles.summaryColumn}>
+            <Text style={styles.secondaryText}>Corrida</Text>
+            <Text style={styles.summaryValue}>800 m</Text>
+          </View>
+          <View style={styles.summaryColumn}>
+            <Text style={styles.secondaryText}>Calorias</Text>
+            <Text style={styles.summaryValue}>420 kcal</Text>
+          </View>
+        </View>
+      </View>
 
-      {/* Sleep */}
-      <Card className="p-5 bg-gradient-to-br from-orange-50 to-red-50 border-orange-100">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-gray-900">Descanso</h3>
-          <span className="text-xs text-gray-600">Última noite</span>
-        </div>
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-700">Horas dormidas</span>
-          <span className="text-sm text-gray-900">{health.sleepHours}h / {sleepGoal}h</span>
-        </div>
-        <Progress value={(health.sleepHours / sleepGoal) * 100} className="h-2" />
-        <p className="text-sm text-gray-600 mt-3">Qualidade do sono: Excelente</p>
-      </Card>
+      <View style={[styles.card, styles.yellowGradient]}>
+        <View style={styles.cardHeaderLeft}>
+          <Droplets color="#f59e0b" size={22} />
+          <Text style={styles.cardTitle}>Hidratação</Text>
+        </View>
+        <View style={styles.metricHeader}>
+          <Text style={styles.secondaryText}>Água consumida hoje</Text>
+          <Text style={styles.metricValue}>
+            {health.waterIntake}ml / {waterGoal}ml
+          </Text>
+        </View>
+        <ProgressBar value={(health.waterIntake / waterGoal) * 100} />
+      </View>
 
-      {/* Weekly Summary */}
-      <Card className="p-5 bg-white/80 backdrop-blur-lg border-gray-200">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-5 h-5 text-orange-500" />
-          <h3 className="text-gray-900">Resumo Semanal</h3>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-gray-600 mb-1">Total de Passos</p>
-            <p className="text-gray-900">52,340</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-600 mb-1">Atividade Média</p>
-            <p className="text-gray-900">68%</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-600 mb-1">Distância Total</p>
-            <p className="text-gray-900">18.5 km</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-600 mb-1">Calorias Queimadas</p>
-            <p className="text-gray-900">2,940 kcal</p>
-          </div>
-        </div>
-      </Card>
-    </div>
+      <View style={[styles.card, styles.sunsetGradient]}>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.cardTitle}>Descanso</Text>
+          <Text style={styles.secondaryText}>Última noite</Text>
+        </View>
+        <View style={styles.metricHeader}>
+          <Text style={styles.secondaryText}>Horas dormidas</Text>
+          <Text style={styles.metricValue}>
+            {health.sleepHours}h / {sleepGoal}h
+          </Text>
+        </View>
+        <ProgressBar value={(health.sleepHours / sleepGoal) * 100} />
+        <Text style={styles.secondaryText}>Qualidade do sono: Excelente</Text>
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.cardHeaderLeft}>
+          <TrendingUp color="#f97316" size={20} />
+          <Text style={styles.cardTitle}>Resumo Semanal</Text>
+        </View>
+        <View style={styles.weekGrid}>
+          <View style={styles.weekColumn}>
+            <Text style={styles.secondaryText}>Total de Passos</Text>
+            <Text style={styles.summaryValue}>52.340</Text>
+          </View>
+          <View style={styles.weekColumn}>
+            <Text style={styles.secondaryText}>Atividade Média</Text>
+            <Text style={styles.summaryValue}>68%</Text>
+          </View>
+          <View style={styles.weekColumn}>
+            <Text style={styles.secondaryText}>Distância Total</Text>
+            <Text style={styles.summaryValue}>18.5 km</Text>
+          </View>
+          <View style={styles.weekColumn}>
+            <Text style={styles.secondaryText}>Calorias Queimadas</Text>
+            <Text style={styles.summaryValue}>2.940 kcal</Text>
+          </View>
+        </View>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    gap: 16,
+    paddingBottom: 24,
+  },
+  description: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  descriptionHighlight: {
+    color: "#111827",
+    fontWeight: "600",
+  },
+  card: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 24,
+    padding: 20,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+  },
+  redGradient: {
+    backgroundColor: "#fee2e2",
+  },
+  orangeGradient: {
+    backgroundColor: "#ffedd5",
+  },
+  yellowGradient: {
+    backgroundColor: "#fef3c7",
+  },
+  sunsetGradient: {
+    backgroundColor: "#fed7aa",
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cardTitle: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  cardSubtitle: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  primaryValue: {
+    color: "#111827",
+    fontSize: 28,
+    fontWeight: "700",
+  },
+  secondaryText: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  chartWrapper: {
+    alignItems: "center",
+    marginTop: 8,
+  },
+  emptyChart: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 16,
+    height: CHART_HEIGHT,
+    justifyContent: "center",
+    width: CHART_WIDTH,
+  },
+  emptyChartText: {
+    color: "#9ca3af",
+    fontSize: 12,
+    textAlign: "center",
+    paddingHorizontal: 16,
+  },
+  statusTag: {
+    color: "#16a34a",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  metricRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+  },
+  metricBlock: {
+    gap: 8,
+    marginTop: 8,
+  },
+  metricHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  metricValue: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  progressTrack: {
+    backgroundColor: "#f3f4f6",
+    borderRadius: 999,
+    height: 8,
+    overflow: "hidden",
+    width: "100%",
+  },
+  progressFill: {
+    backgroundColor: "#fb923c",
+    borderRadius: 999,
+    height: "100%",
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+  },
+  summaryColumn: {
+    alignItems: "center",
+    flex: 1,
+  },
+  summaryValue: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  weekGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    marginTop: 12,
+  },
+  weekColumn: {
+    flexBasis: "48%",
+    gap: 4,
+  },
+});
