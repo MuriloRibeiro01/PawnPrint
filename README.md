@@ -87,16 +87,25 @@ https://www.figma.com/make/wtfJEiOlvbbzujuF7UGWdw/PetCare
 
 ## 📁 Estrutura de Pastas
 
+```
 pawn-print/
-├─ App.tsx
-├─ components/
-├─ hooks/
-├─ services/
-├─ store/
+├─ App.tsx                # ponto de entrada do Expo (reexporta o app principal)
+├─ src/
+│  ├─ app/App.tsx        # estrutura de telas e layout raiz
+│  ├─ components/        # componentes de UI reutilizáveis
+│  ├─ hooks/             # hooks de domínio (ex.: telemetria)
+│  ├─ services/          # integrações externas e clientes HTTP
+│  ├─ store/             # estados globais (Zustand)
+│  └─ styles/            # estilos globais e tokens compartilhados
+├─ hardware/
+│  └─ prototypes/
+│     └─ arduino-collar/ # protótipo da coleira inteligente
+├─ SETUP.md              # guia atualizado de configuração do ambiente
 ├─ app.json
 ├─ package.json
 ├─ tsconfig.json
 └─ babel.config.js
+```
 
 ## 🧾 Modelos de Dados (TypeScript)
 
