@@ -1,0 +1,112 @@
+# -----------------------------------------
+# Node
+# -----------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+*.tsbuildinfo
+
+# -----------------------------------------
+# Environment Variables
+# -----------------------------------------
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+
+# -----------------------------------------
+# Vite / Cache / Build
+# -----------------------------------------
+dist/
+build/
+.cache/
+.vite/
+vite.config.timestamp-*.mjs
+
+# -----------------------------------------
+# Editor / IDE
+# -----------------------------------------
+# VSCode
+.vscode/
+.history/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# Sublime
+*.sublime*
+
+# MacOS metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows metadata
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# -----------------------------------------
+# TypeScript
+# -----------------------------------------
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# -----------------------------------------
+# Testing
+# -----------------------------------------
+coverage/
+*.spec.*.snap
+*.test.*.snap
+
+# Vitest
+.vitest/
+
+# Jest
+jest-cache/
+jest-output/
+jest-coverage/
+
+# -----------------------------------------
+# Firebase/Supabase
+# -----------------------------------------
+# Firebase cache and artifacts
+.firebase/
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+storage-debug.log
+
+# Supabase local data
+.supabase/
+
+# -----------------------------------------
+# Build Tools / Bundlers
+# -----------------------------------------
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.rollup.cache/
+
+# -----------------------------------------
+# Assets
+# -----------------------------------------
+# Avoid committing large raw assets
+*.psd
+*.ai
+*.sketch
+*.fig
+
+# -----------------------------------------
+# OS / System Files
+# -----------------------------------------
+.Trashes
+._*
