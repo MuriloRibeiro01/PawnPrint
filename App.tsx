@@ -1,5 +1,15 @@
 import { useMemo, useState } from "react";
-import { Activity, Home, MapPin, User } from "lucide-react";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+} from "react-native";
+import { Activity, Home, MapPin, User } from "lucide-react-native";
+import { StatusBar } from "expo-status-bar";
 
 import { HealthMonitor } from "./components/HealthMonitor";
 import { LocationMap } from "./components/LocationMap";
@@ -66,6 +76,13 @@ function formatRelativeTimestamp(timestamp?: string) {
   return `há ${days} d`;
 }
 
+const tabs: { key: Tab; label: string; icon: (props: { size: number; color: string }) => JSX.Element }[] = [
+  { key: "home", label: "Início", icon: ({ size, color }) => <Home size={size} color={color} /> },
+  { key: "map", label: "Mapa", icon: ({ size, color }) => <MapPin size={size} color={color} /> },
+  { key: "health", label: "Saúde", icon: ({ size, color }) => <Activity size={size} color={color} /> },
+  { key: "profile", label: "Perfil", icon: ({ size, color }) => <User size={size} color={color} /> },
+];
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   useTelemetryStream();
@@ -73,9 +90,7 @@ export default function App() {
   const telemetry = useTelemetryStore((state) => state.telemetry);
   const vitalsHistory = useTelemetryStore((state) => state.vitalsHistory);
   const locationHistory = useTelemetryStore((state) => state.locationHistory);
-  const connectionStatus = useTelemetryStore(
-    (state) => state.connectionStatus,
-  );
+  const connectionStatus = useTelemetryStore((state) => state.connectionStatus);
 
   const healthData = useMemo(() => {
     const heartRate = telemetry.heartRate || petProfile.healthDefaults.heartRate;
@@ -162,101 +177,240 @@ export default function App() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 p-4">
-      {/* iPhone Frame */}
-      <div className="relative w-[390px] h-[844px] bg-black rounded-[60px] shadow-2xl p-3">
-        {/* Notch */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-black rounded-b-3xl z-20" />
+    <LinearGradient
+      colors={["#fef3c7", "#ffedd5", "#fecdd3"]}
+      style={styles.gradient}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
+        <View style={styles.phoneFrame}>
+          <View style={styles.notch} />
+          <View style={styles.screen}>
+            <View style={styles.statusBar}>
+              <Text style={styles.statusTime}>9:41</Text>
+              <View style={styles.statusIcons}>
+                <View style={styles.signalGroup}>
+                  {[0.4, 0.6, 0.8, 1].map((opacity, index) => (
+                    <View
+                      key={`signal-${index}`}
+                      style={[styles.signalBar, { opacity, height: 6 + index * 3 }]}
+                    />
+                  ))}
+                </View>
+                <View style={styles.wifiIcon}>
+                  <View style={styles.wifiOuter} />
+                  <View style={styles.wifiInner} />
+                  <View style={styles.wifiDot} />
+                </View>
+                <View style={styles.batteryIcon}>
+                  <View style={styles.batteryBody}>
+                    <View style={styles.batteryFill} />
+                  </View>
+                  <View style={styles.batteryCap} />
+                </View>
+              </View>
+            </View>
 
-        {/* Screen */}
-        <div className="relative w-full h-full bg-gradient-to-b from-gray-50 to-white rounded-[48px] overflow-hidden flex flex-col">
-          {/* Status Bar */}
-          <div className="flex items-center justify-between px-8 pt-3 pb-2 bg-transparent">
-            <span className="text-sm text-gray-900">9:41</span>
-            <div className="flex items-center gap-1">
-              <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
-                <rect
-                  x="0.5"
-                  y="0.5"
-                  width="15"
-                  height="11"
-                  rx="2.5"
-                  stroke="currentColor"
-                  className="text-gray-900"
-                />
-                <path
-                  d="M16.5 4V8C17.5 7.5 17.5 4.5 16.5 4Z"
-                  fill="currentColor"
-                  className="text-gray-900"
-                />
-                <rect
-                  x="1.5"
-                  y="1.5"
-                  width="13"
-                  height="9"
-                  rx="1.5"
-                  fill="currentColor"
-                  className="text-gray-900"
-                />
-              </svg>
-            </div>
-          </div>
+            <View style={styles.header}>
+              <Text style={styles.brand}>pawnprint</Text>
+              <Text style={styles.subtitle}>Cuide do seu melhor amigo</Text>
+            </View>
 
-          {/* Header */}
-          <div className="px-6 py-4">
-            <h1 className="text-gray-900">pawnprint</h1>
-            <p className="text-sm text-gray-600">Cuide do seu melhor amigo</p>
-          </div>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderContent()}
+            </ScrollView>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto px-6">{renderContent()}</div>
-
-          {/* Bottom Navigation */}
-          <div className="bg-white/80 backdrop-blur-lg border-t border-gray-200 px-6 py-3 safe-area-bottom">
-            <div className="flex items-center justify-around">
-              <button
-                onClick={() => setActiveTab("home")}
-                className={`flex flex-col items-center gap-1 p-2 transition-colors ${
-                  activeTab === "home" ? "text-orange-500" : "text-gray-500"
-                }`}
-              >
-                <Home className="w-6 h-6" />
-                <span className="text-xs">Início</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("map")}
-                className={`flex flex-col items-center gap-1 p-2 transition-colors ${
-                  activeTab === "map" ? "text-orange-500" : "text-gray-500"
-                }`}
-              >
-                <MapPin className="w-6 h-6" />
-                <span className="text-xs">Mapa</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("health")}
-                className={`flex flex-col items-center gap-1 p-2 transition-colors ${
-                  activeTab === "health" ? "text-orange-500" : "text-gray-500"
-                }`}
-              >
-                <Activity className="w-6 h-6" />
-                <span className="text-xs">Saúde</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("profile")}
-                className={`flex flex-col items-center gap-1 p-2 transition-colors ${
-                  activeTab === "profile" ? "text-orange-500" : "text-gray-500"
-                }`}
-              >
-                <User className="w-6 h-6" />
-                <span className="text-xs">Perfil</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            <View style={styles.tabBar}>
+              {tabs.map((tab) => {
+                const isActive = tab.key === activeTab;
+                const color = isActive ? "#f97316" : "#6b7280";
+                return (
+                  <Pressable
+                    key={tab.key}
+                    style={({ pressed }) => [
+                      styles.tabItem,
+                      isActive && styles.tabItemActive,
+                      pressed && styles.tabItemPressed,
+                    ]}
+                    onPress={() => setActiveTab(tab.key)}
+                  >
+                    {tab.icon({ size: 24, color })}
+                    <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+  },
+  phoneFrame: {
+    backgroundColor: "#111827",
+    borderRadius: 52,
+    padding: 18,
+    width: 390,
+    height: 820,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+  },
+  notch: {
+    alignSelf: "center",
+    backgroundColor: "#111827",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    height: 24,
+    position: "absolute",
+    top: 0,
+    width: 140,
+    zIndex: 2,
+  },
+  screen: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 40,
+    flex: 1,
+    paddingTop: 44,
+    paddingHorizontal: 24,
+  },
+  statusBar: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  statusTime: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  statusIcons: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+  },
+  signalGroup: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    gap: 2,
+  },
+  signalBar: {
+    backgroundColor: "#111827",
+    borderRadius: 2,
+    width: 3,
+  },
+  wifiIcon: {
+    alignItems: "center",
+    height: 16,
+    justifyContent: "center",
+    width: 18,
+  },
+  wifiOuter: {
+    borderColor: "#111827",
+    borderRadius: 9,
+    borderWidth: 2,
+    height: 16,
+    position: "absolute",
+    transform: [{ scaleX: 1.1 }],
+    width: 18,
+    opacity: 0.4,
+  },
+  wifiInner: {
+    borderColor: "#111827",
+    borderRadius: 6,
+    borderWidth: 2,
+    height: 12,
+    position: "absolute",
+    width: 14,
+    opacity: 0.6,
+  },
+  wifiDot: {
+    backgroundColor: "#111827",
+    borderRadius: 4,
+    height: 4,
+    width: 4,
+  },
+  batteryIcon: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 2,
+  },
+  batteryCap: {
+    backgroundColor: "#111827",
+    borderRadius: 1,
+    height: 8,
+    width: 3,
+  },
+  batteryBody: {
+    borderColor: "#111827",
+    borderRadius: 3,
+    borderWidth: 2,
+    height: 14,
+    justifyContent: "center",
+    padding: 1,
+    width: 24,
+  },
+  batteryFill: {
+    backgroundColor: "#111827",
+    borderRadius: 2,
+    flex: 1,
+  },
+  header: {
+    marginBottom: 12,
+  },
+  brand: {
+    color: "#111827",
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  subtitle: {
+    color: "#6b7280",
+    fontSize: 13,
+  },
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  tabBar: {
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderColor: "rgba(148,163,184,0.35)",
+    borderRadius: 28,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+  },
+  tabItem: {
+    alignItems: "center",
+    borderRadius: 20,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  tabItemActive: {
+    backgroundColor: "rgba(249,115,22,0.12)",
+  },
+  tabItemPressed: {
+    opacity: 0.8,
+  },
+  tabLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+});

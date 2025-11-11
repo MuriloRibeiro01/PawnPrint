@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "PawnPrint",
+    "slug": "pawn-print",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "backgroundColor": "#fef3c7",
+    "platforms": ["ios", "android", "web"],
+    "assetBundlePatterns": ["**/*"],
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    }
+  }
+}
