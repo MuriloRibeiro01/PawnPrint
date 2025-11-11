@@ -1,150 +1,123 @@
-# Guia de Execução do App PawnPrint
+# Guia de Configuração — PawnPrint
 
-Este guia explica em detalhes tudo o que você precisa para instalar as dependências, configurar o ambiente e executar o aplicativo PawnPrint em modo de desenvolvimento. Siga todas as etapas na ordem em que aparecem.
-
----
-
-## 1. Requisitos de Software
-
-Antes de começar, instale os seguintes programas no seu computador:
-
-1. **Git** — controle de versão usado para clonar o repositório.
-   - [Download](https://git-scm.com/downloads)
-2. **Node.js 18 LTS ou superior** — contém o interpretador JavaScript e o gerenciador de pacotes `npm`.
-   - [Download](https://nodejs.org/en/download)
-3. **Editor de código** (opcional, mas recomendado)
-   - [Visual Studio Code](https://code.visualstudio.com/) ou outro de sua preferência.
-4. **Android Studio (opcional)** — apenas se desejar testar a versão web em um dispositivo Android virtual usando o emulador integrado.
-   - [Download](https://developer.android.com/studio)
-   - Durante a instalação, marque a opção para instalar o **Android Virtual Device (AVD Manager)**.
-
-> 💡 Se você pretende somente executar a versão web no navegador do seu computador, o Android Studio não é obrigatório.
+Este documento explica como preparar o ambiente, instalar dependências e executar o aplicativo PawnPrint utilizando **Expo**.
 
 ---
 
-## 2. Preparar o Ambiente
+## 1. Pré-requisitos
 
-### 2.1 Verificar Node.js e npm
+Instale os softwares abaixo antes de continuar:
 
-Após a instalação do Node.js, confirme que tudo está funcionando abrindo um terminal e executando:
+1. **Git** – necessário para clonar o repositório.  
+   [Download](https://git-scm.com/downloads)
+2. **Node.js 18 LTS ou superior** – inclui o `npm`, usado para instalar dependências.  
+   [Download](https://nodejs.org/en/download)
+3. **Expo Go (Android/iOS)** – aplicativo opcional para testar no dispositivo físico.  
+   [Android](https://play.google.com/store/apps/details?id=host.exp.exponent) · [iOS](https://apps.apple.com/app/expo-go/id982107779)
+4. **Android Studio** *(opcional)* – apenas se desejar emular o app Android no computador.  
+   Durante a instalação selecione o **Android Virtual Device (AVD)**.
+
+> 💡 Se você for utilizar um dispositivo físico, basta ter o Expo Go instalado e estar na mesma rede Wi-Fi do computador.
+
+---
+
+## 2. Obter o código
+
+Abra um terminal, escolha a pasta onde deseja guardar o projeto e execute:
 
 ```bash
-node -v
-npm -v
+git clone https://github.com/seu-usuario/pawn-print.git
+cd pawn-print
 ```
 
-Os comandos devem exibir as versões instaladas (por exemplo, `v18.x.x` para Node e `8.x.x` para npm).
-
-### 2.2 Configurar o Android Studio (opcional)
-
-Caso queira testar em um emulador Android:
-
-1. Abra o **Android Studio**.
-2. Vá em **More Actions → Virtual Device Manager**.
-3. Clique em **Create Device** e escolha um dispositivo (por exemplo, Pixel 5).
-4. Baixe uma imagem do sistema (API 33 ou superior) e conclua a criação do emulador.
-5. Deixe o emulador pronto, mas não é necessário iniciá-lo agora.
+Substitua a URL pelo endereço real do seu repositório remoto.
 
 ---
 
-## 3. Obter o Código-Fonte
+## 3. Instalar dependências
 
-No terminal, escolha uma pasta onde deseja guardar o projeto e execute:
-
-```bash
-git clone https://github.com/seu-usuario/pawnprint.git
-cd pawnprint
-```
-
-Substitua `seu-usuario` pelo nome do usuário real caso esteja clonando de outro local.
-
----
-
-## 4. Instalar Dependências do Projeto
-
-Com o terminal aberto na pasta do projeto, execute:
+Com o terminal na raiz do projeto, rode:
 
 ```bash
 npm install
 ```
 
-Esse comando baixa todas as bibliotecas necessárias definidas no `package.json`.
+Esse comando instala todas as bibliotecas definidas no `package.json`.
 
 ---
 
-## 5. Configurar Variáveis de Ambiente
+## 4. Variáveis de ambiente
 
-O app espera variáveis de ambiente (por exemplo, chaves do Supabase ou Firebase). Crie um arquivo `.env` na raiz do projeto com os valores apropriados:
+Expo expõe variáveis somente se elas começarem com `EXPO_PUBLIC_`. Crie um arquivo `.env` na raiz do projeto (ou copie o modelo caso exista) e defina os valores necessários:
 
 ```bash
-cp .env.example .env # se existir o arquivo de exemplo
+cp .env.example .env # caso exista o arquivo de exemplo
 ```
 
-Edite o arquivo `.env` e preencha com suas chaves:
+Edite o `.env` e ajuste os valores:
 
 ```env
-VITE_SUPABASE_URL="https://sua-instancia.supabase.co"
-VITE_SUPABASE_KEY="sua-chave"
-VITE_FIREBASE_API_KEY="sua-chave"
-VITE_FIREBASE_AUTH_DOMAIN="seu-projeto.firebaseapp.com"
+EXPO_PUBLIC_API_BASE_URL="http://localhost:3000"
+EXPO_PUBLIC_SUPABASE_URL="https://sua-instancia.supabase.co"
+EXPO_PUBLIC_SUPABASE_KEY="sua-chave"
 ```
 
-> ✅ Ajuste os nomes das variáveis conforme os serviços que você realmente utiliza. Se algum serviço ainda não estiver configurado, deixe a variável vazia temporariamente, mas lembre-se de preenchê-la antes de usar funcionalidades dependentes dele.
+Adapte as variáveis aos serviços que estiver utilizando.
 
 ---
 
-## 6. Executar o Servidor de Desenvolvimento
+## 5. Executar o app
 
-Inicie o ambiente de desenvolvimento Vite com:
+Inicie o servidor de desenvolvimento do Expo com:
 
 ```bash
-npm run dev
+npm start
 ```
 
-O terminal exibirá uma URL semelhante a `http://localhost:5173/`. Acesse esse endereço no navegador para abrir o app.
+O Expo abrirá o **Expo Dev Tools** no navegador ou exibirá um QR Code no terminal. Você pode:
 
-### 6.1 Usando o Android Studio para Testar no Emulador (opcional)
+- Pressionar **`w`** para abrir a versão web.  
+- Pressionar **`a`** para iniciar/usar um emulador Android configurado.  
+- Pressionar **`i`** para iniciar um simulador iOS (em macOS).  
+- Escanear o QR Code com o **Expo Go** para testar no dispositivo físico.
 
-1. Com o comando `npm run dev` ativo, copie a URL `http://localhost:5173/`.
-2. Inicie o emulador Android pelo Android Studio (AVD Manager).
-3. No emulador, abra o Chrome e navegue até a URL copiada. Se estiver executando no mesmo computador, use `http://10.0.2.2:5173/` (endereço padrão de loopback do emulador).
-4. O app web será carregado dentro do dispositivo virtual, permitindo validar o layout mobile.
-
----
-
-## 7. Comandos Úteis Adicionais
-
-- **Executar lint/testes** (caso configurados):
-  ```bash
-  npm run lint
-  npm test
-  ```
-- **Gerar build de produção:**
-  ```bash
-  npm run build
-  ```
-- **Pré-visualizar o build:**
-  ```bash
-  npm run preview
-  ```
+> Caso utilize um emulador Android, verifique se o AVD está iniciado antes de pressionar `a`.
 
 ---
 
-## 8. Solução de Problemas
+## 6. Scripts úteis
+
+```bash
+npm run lint   # executa o ESLint
+npm run android # build nativo/rodar no Android (requer ambiente nativo configurado)
+npm run ios     # build nativo/rodar no iOS (requer Xcode)
+npx expo export # gera build web estático
+```
+
+---
+
+## 7. Estrutura do projeto
+
+O código-fonte principal está em `src/`:
+
+- `src/app` – ponto de entrada do aplicativo.  
+- `src/components` – componentes reutilizáveis de UI.  
+- `src/hooks` – hooks específicos do domínio (ex.: telemetria).  
+- `src/services` – clientes HTTP e integrações externas.  
+- `src/store` – gerenciamento de estado global com Zustand.  
+- `src/styles` – estilos globais.
+
+Os protótipos de hardware estão em `hardware/prototypes/`.
+
+---
+
+## 8. Solução de problemas
 
 | Sintoma | Possível causa | Ação recomendada |
 |--------|----------------|------------------|
-| `npm` não é reconhecido | Node.js não instalado ou não adicionado ao PATH | Reinstale o Node.js e reinicie o terminal |
-| Erro ao instalar dependências | Cache corrompido do npm | Execute `npm cache clean --force` e depois `npm install` novamente |
-| App não abre no emulador Android | URL incorreta | Use `http://10.0.2.2:5173/` no navegador do emulador |
-| Variáveis `VITE_*` indefinidas | `.env` ausente ou incompleto | Verifique se o arquivo `.env` existe e está preenchido |
+| `npm` não é reconhecido | Node.js não instalado ou não está no PATH | Reinstale o Node.js e reinicie o terminal |
+| O Expo Dev Tools não abre | Porta ocupada ou firewall bloqueando | Informe `E` e escolha outra porta, ou libere a porta 8081 |
+| Erro ao iniciar no Android | Emulador não iniciado | Abra o AVD no Android Studio antes de pressionar `a` |
+| Variáveis `EXPO_PUBLIC_*` vazias | `.env` ausente ou variáveis com prefixo incorreto | Crie/edite o `.env` garantindo o prefixo `EXPO_PUBLIC_` |
 
----
-
-## 9. Próximos Passos
-
-- Ajustar as configurações do Firebase ou Supabase conforme os serviços que você habilitar.
-- Configurar deploy (Vercel/Netlify) após validar o build com `npm run build`.
-- Documentar credenciais e processos internos para a equipe.
-
-Seguindo esse passo a passo, você terá o ambiente pronto para desenvolver e testar o PawnPrint tanto no navegador quanto em um dispositivo Android virtual.
+Seguindo essas etapas, o ambiente ficará pronto para desenvolver e testar o PawnPrint.
