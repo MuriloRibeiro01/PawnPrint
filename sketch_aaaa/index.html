@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Monitoramento Coleira</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .status.online { color: green; }
+    .status.offline { color: red; }
+    #map { width: 100%; height: 300px; border-radius: 10px; margin-top: 10px; }
+    #alerta {
+      display: none;
+      background: red;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-weight: bold;
+      text-align: center;
+    }
+    #historico {
+      margin-top: 15px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    #historico h3 { margin-top: 0; }
+    .coordenada { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Monitoramento Coleira</h1>
+
+  <div>
+    <h2>Sensor Temperatura e Umidade</h2>
+    <p><strong>Temperatura:</strong> <span id="temp">--</span>°C</p>
+    <p><strong>Umidade:</strong> <span id="umid">--</span>%</p>
+  </div>
+
+  <div>
+    <h2>Sensor GPS</h2>
+    <p><strong>Latitude:</strong> <span id="lat">--</span></p>
+    <p><strong>Longitude:</strong> <span id="lon">--</span></p>
+    <p><strong>Altitude:</strong> <span id="alt">--</span> m</p>
+    <span class="status offline" id="statusGPS">AGUARDANDO GPS</span>
+  </div>
+
+  <div>
+    <h2>Mapa em tempo real</h2>
+    <label>Raio (m): <input type="number" id="inputRaio" value="100" min="10" max="1000"></label>
+    <div id="map"></div>
+    <div id="alerta">⚠️ ANIMAL FORA DA ÁREA SEGURA!</div>
+  </div>
+
+  <div id="historico">
+    <h3>Últimas localizações</h3>
+    <div id="listaCoordenadas"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let latInicial = 0, lonInicial = 0;
+    const map = L.map('map').setView([latInicial, lonInicial], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let marker = L.marker([latInicial, lonInicial]).addTo(map);
+    let circulo = null;
+    let centroGeofence = null;
+    let raioGeofence = parseFloat(document.getElementById('inputRaio').value);
+    const alertaBox = document.getElementById('alerta');
+    const listaCoordenadas = document.getElementById('listaCoordenadas');
+    const historico = [];
+
+    document.getElementById('inputRaio').addEventListener('input', e => {
+      raioGeofence = parseFloat(e.target.value);
+      if (circulo && centroGeofence) {
+        map.removeLayer(circulo);
+        circulo = L.circle(centroGeofence, {
+          radius: raioGeofence,
+          color: 'blue',
+          fillOpacity: 0.1
+        }).addTo(map);
+      }
+    });
+
+    map.on('click', e => {
+      centroGeofence = [e.latlng.lat, e.latlng.lng];
+      if (circulo) map.removeLayer(circulo);
+      circulo = L.circle(centroGeofence, {
+        radius: raioGeofence,
+        color: 'blue',
+        fillOpacity: 0.1
+      }).addTo(map);
+
+      fetch('/alerta', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tipo: 'geofence_definida', centro: centroGeofence, raio: raioGeofence })
+      });
+    });
+
+    function dentroDaGeofence(lat, lon) {
+      if (!centroGeofence) return true;
+      const distancia = map.distance([lat, lon], centroGeofence);
+      return distancia <= raioGeofence;
+    }
+
+    function enviarAlerta(tipo, dados) {
+      fetch('/alerta', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tipo, ...dados })
+      }).catch(() => console.warn('Falha ao enviar alerta'));
+    }
+
+    // Histórico de localizações 
+    function adicionarHistorico(lat, lon) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
+        .then(r => r.json())
+        .then(d => {
+          const endereco = d.display_name || "Endereço não encontrado";
+          historico.unshift({ lat, lon, endereco });
+          if (historico.length > 5) historico.splice(5);
+          atualizarLista();
+        })
+        .catch(() => console.warn("Falha ao obter endereço"));
+    }
+
+    function atualizarLista() {
+      listaCoordenadas.innerHTML = historico.map(item =>
+        `<div class="coordenada">
+           📍 <strong>${item.lat.toFixed(5)}, ${item.lon.toFixed(5)}</strong><br>
+           🏠 ${item.endereco}
+         </div>`
+      ).join('');
+    }
+
+    function atualizar() {
+      fetch('/dados-sensor')
+        .then(r => r.json())
+        .then(d => {
+          document.getElementById('temp').textContent = d.temperatura ?? '--';
+          document.getElementById('umid').textContent = d.umidade ?? '--';
+          document.getElementById('timeSensor').textContent = d.ultimaAtualizacao ?? 'Nenhum dado';
+        })
+        .catch(() => console.warn('Falha ao obter dados do sensor'));
+
+      fetch('/dados-localizacao')
+        .then(r => r.json())
+        .then(d => {
+          const lat = d.latitude, lon = d.longitude;
+          document.getElementById('lat').textContent = lat ?? '--';
+          document.getElementById('lon').textContent = lon ?? '--';
+          document.getElementById('alt').textContent = d.altitude ?? '--';
+          document.getElementById('timeLocation').textContent = d.ultimaAtualizacao ?? 'Nenhum dado';
+
+          const statusElement = document.getElementById('statusGPS');
+
+          if (lat && lon) {
+            statusElement.textContent = 'CONECTADO';
+            statusElement.className = 'status online';
+
+            const atual = marker.getLatLng();
+            const destino = L.latLng(lat, lon);
+            const passos = 20;
+            let i = 0;
+            const animar = setInterval(() => {
+              i++;
+              const novaLat = atual.lat + (destino.lat - atual.lat) * (i / passos);
+              const novaLon = atual.lng + (destino.lng - atual.lng) * (i / passos);
+              marker.setLatLng([novaLat, novaLon]);
+              if (i === passos) clearInterval(animar);
+            }, 50);
+
+            adicionarHistorico(lat, lon);
+
+            if (centroGeofence && !dentroDaGeofence(lat, lon)) {
+              alertaBox.style.display = 'block';
+              enviarAlerta('fora_geofence', { lat, lon });
+            } else {
+              alertaBox.style.display = 'none';
+            }
+          } else {
+            statusElement.textContent = 'AGUARDANDO GPS';
+            statusElement.className = 'status offline';
+          }
+        })
+        .catch(() => console.warn('Falha ao obter dados de localização'));
+    }
+
+    setInterval(atualizar, 3000);
+    window.onload = atualizar;
+  </script>
+</body>
+</html>
