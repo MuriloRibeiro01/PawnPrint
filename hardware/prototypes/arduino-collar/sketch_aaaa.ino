@@ -1,115 +1,184 @@
-#include <TinyGPSPlus.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 #include "DHT.h"
+#include <TinyGPSPlus.h>
 
+// Configurações do WiFi
+const char* ssid = "testeESP32";
+const char* password = "12345678";
+
+// Configurações do DHT11
 #define DHTPIN 2
 #define DHTTYPE DHT11
-
 DHT dht(DHTPIN, DHTTYPE);
-TinyGPSPlus gps;
 
+// Configurações do GPS
+TinyGPSPlus gps;
 #define gpsSerial Serial2
 
-struct Telemetry {
-  int heartRate;
-  float temperature;
-  double latitude;
-  double longitude;
-  String timestamp;
-};
+// URL do servidor - CORRIGIDA
+const char* serverURL = "http://172.22.99.95:3000/api/telemetry";
 
-unsigned long lastTelemetrySent = 0;
-const unsigned long TELEMETRY_INTERVAL = 2000;
+// Variáveis GPS
+float gps_latitude = 0;
+float gps_longitude = 0;
+int satellites = 0;
+float altitude = 0;
+float speed = 0;
+float course = 0;
+String gps_date = "";
+String gps_time = "";
+bool gpsValid = false;
+
+// Variáveis de timing
+unsigned long lastTelemetryUpdate = 0;
+const unsigned long TELEMETRY_INTERVAL = 5000;  // 5 segundos
 
 void setup() {
   Serial.begin(115200);
-  gpsSerial.begin(9600, SERIAL_8N1, 16, 17);
   dht.begin();
 
-  Serial.println("PawnPrint firmware inicializada. Aguardando sensores...");
+  // Inicializar GPS
+  gpsSerial.begin(9600, SERIAL_8N1, 16, 17);
+  Serial.println("Inicializando GPS...");
+
+  // Conectar ao WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Conectando ao WiFi");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nConectado! IP: " + WiFi.localIP().toString());
+  Serial.println("Aguardando dados do GPS...");
 }
 
 void loop() {
-  processGPS();
+  unsigned long currentTime = millis();
 
-  if (millis() - lastTelemetrySent >= TELEMETRY_INTERVAL) {
-    Telemetry telemetry = readTelemetry();
-    sendTelemetry(telemetry);
-    lastTelemetrySent = millis();
+  // Processar dados GPS
+  processarGPS();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    // Enviar telemetria completa periodicamente
+    if (currentTime - lastTelemetryUpdate >= TELEMETRY_INTERVAL) {
+      enviarTelemetriaParaServidor();
+      lastTelemetryUpdate = currentTime;
+    }
+  } else {
+    Serial.println("WiFi desconectado! Tentando reconectar...");
+    WiFi.reconnect();
+    delay(5000);
   }
+
+  delay(100);
 }
 
-void processGPS() {
+void processarGPS() {
   while (gpsSerial.available() > 0) {
-    gps.encode(gpsSerial.read());
+    if (gps.encode(gpsSerial.read())) {
+      displayLocationInfo();
+    }
+  }
+
+  if (millis() > 10000 && gps.charsProcessed() < 10) {
+    Serial.println("Aviso: GPS não detectado - verifique a fiação.");
+    gpsValid = false;
   }
 }
 
-Telemetry readTelemetry() {
-  Telemetry t;
-
-  float temperature = dht.readTemperature();
-  if (isnan(temperature)) {
-    temperature = 37.5 + random(-10, 10) / 10.0;
-  }
-
-  t.temperature = temperature;
-  t.heartRate = 70 + random(-15, 25);
-
+void displayLocationInfo() {
   if (gps.location.isValid()) {
-    t.latitude = gps.location.lat();
-    t.longitude = gps.location.lng();
-  } else {
-    t.latitude = 0.0;
-    t.longitude = 0.0;
-  }
+    gps_latitude = gps.location.lat();
+    gps_longitude = gps.location.lng();
+    satellites = gps.satellites.value();
+    altitude = gps.altitude.meters();
+    speed = gps.speed.kmph();
+    course = gps.course.deg();
+    gpsValid = true;
 
-  if (gps.date.isValid() && gps.time.isValid()) {
-    char buffer[25];
-    snprintf(
-      buffer,
-      sizeof(buffer),
-      "%02d-%02d-%04dT%02d:%02d:%02dZ",
-      gps.date.day(),
-      gps.date.month(),
-      gps.date.year(),
-      gps.time.hour(),
-      gps.time.minute(),
-      gps.time.second()
-    );
-    t.timestamp = String(buffer);
-  } else {
-    t.timestamp = isoTimestampFromMillis();
-  }
+    // Formatar data
+    if (gps.date.isValid()) {
+      gps_date = String(gps.date.day()) + "/" + String(gps.date.month()) + "/" + String(gps.date.year());
+    } else {
+      gps_date = "Invalid";
+    }
 
-  return t;
+    // Formatar hora
+    if (gps.time.isValid()) {
+      char timeBuffer[12];
+      snprintf(timeBuffer, sizeof(timeBuffer), "%02d:%02d:%02d",
+               gps.time.hour(), gps.time.minute(), gps.time.second());
+      gps_time = String(timeBuffer);
+    } else {
+      gps_time = "Invalid";
+    }
+
+    static unsigned long lastDisplay = 0;
+    if (millis() - lastDisplay >= 10000) {
+      Serial.println("=== DADOS GPS ===");
+      Serial.print("Latitude: "); Serial.println(gps_latitude, 6);
+      Serial.print("Longitude: "); Serial.println(gps_longitude, 6);
+      Serial.print("Satellites: "); Serial.println(satellites);
+      Serial.print("Altitude: "); Serial.print(altitude); Serial.println(" m");
+      Serial.print("Speed: "); Serial.print(speed); Serial.println(" km/h");
+      Serial.println("=================");
+      lastDisplay = millis();
+    }
+  } else {
+    gpsValid = false;
+  }
 }
 
-String isoTimestampFromMillis() {
-  unsigned long now = millis();
-  unsigned long seconds = now / 1000;
-  unsigned long minutes = seconds / 60;
-  unsigned long hours = minutes / 60;
-  seconds %= 60;
-  minutes %= 60;
-  hours %= 24;
+void enviarTelemetriaParaServidor() {
+  HTTPClient http;
+  http.begin(serverURL);
+  http.addHeader("Content-Type", "application/json");
 
-  char buffer[25];
-  snprintf(buffer, sizeof(buffer), "1970-01-01T%02lu:%02lu:%02luZ", hours, minutes, seconds);
-  return String(buffer);
-}
+  // Ler dados do sensor DHT11
+  float temperatura = dht.readTemperature();
+  float umidade = dht.readHumidity();
 
-void sendTelemetry(const Telemetry& telemetry) {
-  char payload[200];
-  snprintf(
-    payload,
-    sizeof(payload),
-    "{\"heartRate\":%d,\"temperature\":%.2f,\"latitude\":%.6f,\"longitude\":%.6f,\"timestamp\":\"%s\"}",
-    telemetry.heartRate,
-    telemetry.temperature,
-    telemetry.latitude,
-    telemetry.longitude,
-    telemetry.timestamp.c_str()
-  );
+  if (isnan(temperatura)) temperatura = -999;
+  if (isnan(umidade)) umidade = -999;
 
-  Serial.println(payload);
+  // Criar JSON com todos os dados
+  String json = "{";
+  
+  // Dados do sensor
+  json += "\"temperature\":" + String(temperatura) + ",";
+  json += "\"humidity\":" + String(umidade) + ",";
+  
+  // Dados GPS (apenas se válidos)
+  if (gpsValid) {
+    json += "\"latitude\":" + String(gps_latitude, 6) + ",";
+    json += "\"longitude\":" + String(gps_longitude, 6) + ",";
+    json += "\"altitude\":" + String(altitude, 2) + ",";
+    json += "\"speed\":" + String(speed, 2) + ",";
+    json += "\"course\":" + String(course, 2) + ",";
+    json += "\"satellites\":" + String(satellites) + ",";
+    json += "\"date\":\"" + gps_date + "\",";
+    json += "\"time\":\"" + gps_time + "\",";
+  }
+  
+  json += "\"source\":\"arduino\",";
+  json += "\"ip\":\"" + WiFi.localIP().toString() + "\"";
+  json += "}";
+
+  Serial.print("📤 Enviando telemetria: ");
+  Serial.println(json);
+
+  int httpResponseCode = http.POST(json);
+
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    Serial.print("✅ Dados enviados! Resposta: ");
+    Serial.println(response);
+  } else {
+    Serial.print("❌ Erro no envio: ");
+    Serial.println(httpResponseCode);
+  }
+  http.end();
 }
