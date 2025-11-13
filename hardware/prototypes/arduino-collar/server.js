@@ -71,9 +71,11 @@ app.get(`${API_PREFIX}/location`, (_req, res) => {
 });
 
 app.post(`${API_PREFIX}/telemetry`, (req, res) => {
+  console.log("📡 Telemetria recebida:", req.body);
   const updated = normalizeTelemetry(req.body || {});
   res.json({ status: "ok", telemetry: updated });
 });
+
 
 app.get(`${API_PREFIX}/stream`, (req, res) => {
   res.writeHead(200, {
@@ -131,11 +133,9 @@ if (!serialPort) {
   setInterval(() => {
     const simulated = {
       heartRate: 70 + Math.round(Math.random() * 30),
-      temperature: 37 + Math.random() * 3,
-      latitude:
-        latestTelemetry.latitude || -23.5505 + (Math.random() - 0.5) * 0.001,
-      longitude:
-        latestTelemetry.longitude || -46.6333 + (Math.random() - 0.5) * 0.001,
+      temperature: latestTelemetry.temperature,       // real (do ESP32)
+      latitude: latestTelemetry.latitude,             // real (do ESP32)
+      longitude: latestTelemetry.longitude,           // real (do ESP32)
       timestamp: new Date().toISOString(),
     };
 
