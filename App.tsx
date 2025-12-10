@@ -1,8 +1,16 @@
-import App from "./src/app/App";
+import { useMemo, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Pressable,
+} from "react-native";
+import { Activity, Home, MapPin, User } from "lucide-react-native";
+import { StatusBar } from "expo-status-bar";
 
-<<<<<<< Updated upstream
-export default App;
-=======
 import { HealthMonitor } from "./src/screens/HealthMonitor";
 import { LocationMap } from "./src/screens/LocationMap";
 import { PetDashboard } from "./src/screens/PetDashboard";
@@ -414,4 +422,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
->>>>>>> Stashed changes
