@@ -193,8 +193,8 @@ export default function App() {
       <SafeAreaView style={styles.safeArea}>
           <View style={styles.screen}>
             <View style={styles.header}>
-              <Text style={styles.brand}>pawnprint</Text>
-              <Text style={styles.subtitle}>Cuide do seu melhor amigo</Text>
+              <Text style={styles.brand}>PawnPrint</Text>
+              <Text style={styles.subtitle}>Cuide do seu melhor amigo!</Text>
             </View>
 
             <ScrollView

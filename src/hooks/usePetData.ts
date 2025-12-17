@@ -13,6 +13,7 @@ export const usePetData = () => {
 
     const healthData = useMemo(() => {
         // Mover a lógica do healthData para cá
+        // Aparentemente é melhor usar uma conta matemática direta pra calcular alguns dados que sejam voláteis
     }, [telemetry, vitalsHistory]);
 
     const locationData = useMemo(() => {
