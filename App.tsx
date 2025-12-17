@@ -7,18 +7,19 @@ import {
   Text,
   View,
   Pressable,
+  Button,
+  Alert
 } from "react-native";
 import { Activity, Home, MapPin, User } from "lucide-react-native";
-import { StatusBar } from "expo-status-bar";
 
-import { HealthMonitor } from "./src/screens/HealthMonitor";
-import { LocationMap } from "./src/screens/LocationMap";
-import { PetDashboard } from "./src/screens/PetDashboard";
+import { HealthMonitor } from "./src/health/HealthMonitor";
+import { LocationMap } from "./src/map/LocationMap";
+import { PetDashboard } from "./src/dashboard/PetDashboard";
 import { ProfileScreen } from "./src/screens/ProfileScreen";
 import { useTelemetryStream } from "./src/hooks/useTelemetryStream";
 import { useTelemetryStore } from "./src/store/telemetry";
 
-// Área com dados fictícios do pet
+// Área com dados fictícios do pet - ver lógica para popular o app com dados reais
 const petProfile = {
   // Dados do pet em si
   pet: {
@@ -190,35 +191,7 @@ export default function App() {
       style={styles.gradient}
     >
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar style="dark" />
-        <View style={styles.phoneFrame}>
-          <View style={styles.notch} />
           <View style={styles.screen}>
-            <View style={styles.statusBar}>
-              <Text style={styles.statusTime}>9:41</Text>
-              <View style={styles.statusIcons}>
-                <View style={styles.signalGroup}>
-                  {[0.4, 0.6, 0.8, 1].map((opacity, index) => (
-                    <View
-                      key={`signal-${index}`}
-                      style={[styles.signalBar, { opacity, height: 6 + index * 3 }]}
-                    />
-                  ))}
-                </View>
-                <View style={styles.wifiIcon}>
-                  <View style={styles.wifiOuter} />
-                  <View style={styles.wifiInner} />
-                  <View style={styles.wifiDot} />
-                </View>
-                <View style={styles.batteryIcon}>
-                  <View style={styles.batteryBody}>
-                    <View style={styles.batteryFill} />
-                  </View>
-                  <View style={styles.batteryCap} />
-                </View>
-              </View>
-            </View>
-
             <View style={styles.header}>
               <Text style={styles.brand}>pawnprint</Text>
               <Text style={styles.subtitle}>Cuide do seu melhor amigo</Text>
@@ -252,131 +225,24 @@ export default function App() {
               })}
             </View>
           </View>
-        </View>
       </SafeAreaView>
     </LinearGradient>
   );
 }
 
+// Estilos dos componentes
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
   safeArea: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 32,
-  },
-  phoneFrame: {
-    backgroundColor: "#111827",
-    borderRadius: 52,
-    padding: 18,
-    width: 390,
-    height: 820,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-  },
-  notch: {
-    alignSelf: "center",
-    backgroundColor: "#111827",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    height: 24,
-    position: "absolute",
-    top: 0,
-    width: 140,
-    zIndex: 2,
   },
   screen: {
     backgroundColor: "#f8fafc",
-    borderRadius: 40,
     flex: 1,
-    paddingTop: 44,
-    paddingHorizontal: 24,
-  },
-  statusBar: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  statusTime: {
-    color: "#111827",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  statusIcons: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-  },
-  signalGroup: {
-    alignItems: "flex-end",
-    flexDirection: "row",
-    gap: 2,
-  },
-  signalBar: {
-    backgroundColor: "#111827",
-    borderRadius: 2,
-    width: 3,
-  },
-  wifiIcon: {
-    alignItems: "center",
-    height: 16,
-    justifyContent: "center",
-    width: 18,
-  },
-  wifiOuter: {
-    borderColor: "#111827",
-    borderRadius: 9,
-    borderWidth: 2,
-    height: 16,
-    position: "absolute",
-    transform: [{ scaleX: 1.1 }],
-    width: 18,
-    opacity: 0.4,
-  },
-  wifiInner: {
-    borderColor: "#111827",
-    borderRadius: 6,
-    borderWidth: 2,
-    height: 12,
-    position: "absolute",
-    width: 14,
-    opacity: 0.6,
-  },
-  wifiDot: {
-    backgroundColor: "#111827",
-    borderRadius: 4,
-    height: 4,
-    width: 4,
-  },
-  batteryIcon: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 2,
-  },
-  batteryCap: {
-    backgroundColor: "#111827",
-    borderRadius: 1,
-    height: 8,
-    width: 3,
-  },
-  batteryBody: {
-    borderColor: "#111827",
-    borderRadius: 3,
-    borderWidth: 2,
-    height: 14,
-    justifyContent: "center",
-    padding: 1,
-    width: 24,
-  },
-  batteryFill: {
-    backgroundColor: "#111827",
-    borderRadius: 2,
-    flex: 1,
+    paddingTop: 20,
+    paddingHorizontal: 16,
   },
   header: {
     marginBottom: 12,

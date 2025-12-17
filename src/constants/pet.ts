@@ -1,0 +1,1 @@
+// Usa o hook usePetData para obter os dados do perfil do pet
