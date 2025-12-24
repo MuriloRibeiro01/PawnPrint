@@ -44,6 +44,12 @@ npm install
 
 Esse comando instala todas as bibliotecas definidas no `package.json`.
 
+````bash
+npm install @react-navigation/native @react-navigation/bottom-tabs react-native-safe-area-context
+````
+
+Esse comando instala as dependências de navegação do sistema.
+
 ---
 
 ## 4. Variáveis de ambiente
